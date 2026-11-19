@@ -227,6 +227,10 @@
       transition: opacity 0.2s ease;
     }
 
+    /* One-click Bilingual Language Switching */
+    body.lang-zh .only-en { display: none !important; }
+    body.lang-en .only-zh { display: none !important; }
+
     /* Leaflet overrides for clean antique atlas styling */
     .leaflet-container {
       background: #bed7e5 !important;
@@ -273,7 +277,7 @@
     }
   </style>
 </head>
-<body class="flex flex-col h-screen w-screen overflow-hidden">
+<body class="lang-zh flex flex-col h-screen w-screen overflow-hidden">
 
   <!-- TOP HEADER BAR -->
   <header class="parchment-panel border-b-2 border-[#8b7b65] px-3 sm:px-4 py-2 flex items-center justify-between gap-2 shrink-0 z-30 shadow-sm">
@@ -287,34 +291,46 @@
       <div class="truncate">
         <div class="flex items-baseline gap-2">
           <h1 class="font-serif-atlas font-bold text-base sm:text-lg text-[#2b2520] truncate">
-            雅各（以色列）生平与旅程地图
+            <span class="only-zh">雅各（以色列）生平与旅程地图</span>
+            <span class="only-en">The Life &amp; Journeys of Jacob (Israel)</span>
           </h1>
           <span class="hidden md:inline-block text-[10.5px] font-medium px-2 py-0.5 rounded-full bg-[#e9dec6] text-[#5c4a35] border border-[#c7b698]">
-            创世记 Gen 25–50 · LSB + 和合本现代标点
+            <span class="only-zh">创世记 25–50</span>
+            <span class="only-en">Genesis 25–50</span>
           </span>
         </div>
         <p class="font-serif-atlas italic text-[11px] text-[#6a5b49] truncate -mt-0.5">
-          Copernicus DEM (GLO-30) Relief · Natural Earth 1:10m Coastline &amp; Hydrology
+          <span class="only-zh">Copernicus DEM (GLO-30) 高程地形 · Natural Earth 1:10m 水系海岸线</span>
+          <span class="only-en">Copernicus DEM (GLO-30) Relief · Natural Earth 1:10m Coastline &amp; Hydrology</span>
         </p>
       </div>
     </div>
 
-    <!-- VIEW PRESETS + 3D TERRAIN TOGGLE -->
+    <!-- VIEW PRESETS + RELIEF + BILINGUAL TOGGLE -->
     <div class="flex items-center gap-1.5 shrink-0">
       <div class="flex items-center gap-1 bg-[#ede3cc] p-1 rounded-lg border border-[#c8b89c]">
         <button id="btn-preset-full" onclick="applyPreset('full')" class="preset-btn px-2 py-1 rounded-md text-xs font-medium bg-[#2b2520] text-[#faf6ec] transition-colors">
-          全景 <span class="hidden lg:inline opacity-75">Full</span>
+          <span class="only-zh">全景</span>
+          <span class="only-en">Full</span>
         </button>
         <button id="btn-preset-canaan" onclick="applyPreset('canaan')" class="preset-btn px-2 py-1 rounded-md text-xs font-medium text-[#3b3228] hover:bg-[#faf6ec] transition-colors">
-          迦南详图 <span class="hidden lg:inline opacity-75">Canaan</span>
+          <span class="only-zh">迦南详图</span>
+          <span class="only-en">Canaan</span>
         </button>
         <button id="btn-preset-egypt" onclick="applyPreset('egypt')" class="preset-btn px-2 py-1 rounded-md text-xs font-medium text-[#3b3228] hover:bg-[#faf6ec] transition-colors">
-          埃及归葬 <span class="hidden lg:inline opacity-75">Egypt</span>
+          <span class="only-zh">埃及归葬</span>
+          <span class="only-en">Egypt</span>
         </button>
       </div>
 
-      <button id="btn-3d-toggle" onclick="toggle3DTerrain()" class="px-2.5 py-1.5 rounded-lg border border-[#8b7b65] bg-[#faf6ec] hover:bg-[#efe5cf] text-xs font-semibold text-[#2b2520] transition-colors" title="Toggle Enhanced Copernicus GLO-30 Hillshade Relief">
+      <button id="btn-3d-toggle" onclick="toggle3DTerrain()" class="px-2.5 py-1.5 rounded-lg border border-[#8b7b65] bg-[#faf6ec] hover:bg-[#efe5cf] text-xs font-semibold text-[#2b2520] transition-colors" title="Toggle Enhanced Hillshade Relief">
         立体增强
+      </button>
+
+      <!-- ONE-CLICK BILINGUAL TOGGLE BUTTON -->
+      <button id="btn-lang-toggle" onclick="toggleLanguage()" class="flex items-center rounded-lg border border-[#8b7b65] bg-[#ede3cc] p-0.5 text-xs font-semibold shadow-sm hover:border-[#5c4a35] transition-colors" title="一键切换中英文 / Switch Chinese &amp; English">
+        <span id="lang-pill-zh" class="px-2 py-1 rounded-md bg-[#2b2520] text-[#faf6ec] transition-colors">中文</span>
+        <span id="lang-pill-en" class="px-2 py-1 rounded-md text-[#3b3228] transition-colors">EN</span>
       </button>
 
       <button onclick="toggleSidebar()" class="px-2.5 py-1.5 rounded-lg border border-[#8b7b65] bg-[#faf6ec] hover:bg-[#efe5cf] text-xs font-medium text-[#2b2520] flex items-center gap-1 transition-colors">
@@ -330,7 +346,7 @@
   <!-- MAIN WORKSPACE -->
   <div id="workspace" class="flex flex-1 min-h-0 overflow-hidden">
 
-    <!-- LEFT: MAPLIBRE GL INTERACTIVE PHYSICAL MAP -->
+    <!-- LEFT: LEAFLET INTERACTIVE PHYSICAL MAP -->
     <section id="map-pane" class="relative flex-1 min-w-0 h-full">
       <div id="map-container" class="compact-zoom"></div>
       <div class="map-neatline-overlay"></div>
@@ -338,7 +354,10 @@
       <!-- FLOATING LEGEND OVERLAY (TOP-LEFT) -->
       <div class="absolute top-4 left-4 z-20 atlas-frame parchment-panel rounded-lg w-[240px] sm:w-[270px]">
         <div class="px-3 py-1.5 border-b border-[#d5c7ae] flex items-center justify-between cursor-pointer" onclick="toggleLegend()">
-          <span class="font-serif-atlas font-bold text-xs sm:text-sm text-[#2b2520]">图例与路线筛选 · Legend</span>
+          <span class="font-serif-atlas font-bold text-xs sm:text-sm text-[#2b2520]">
+            <span class="only-zh">图例与路线筛选</span>
+            <span class="only-en">Legend &amp; Routes</span>
+          </span>
           <svg id="legend-arrow" class="w-4 h-4 text-[#6a5b49] transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -349,9 +368,15 @@
             <div class="leading-tight">
               <div class="flex items-center gap-1.5">
                 <span class="inline-block w-5 h-0.5 bg-[#1e5688]"></span>
-                <span class="text-xs font-semibold text-[#1e5688]">1. 前往哈兰避难</span>
+                <span class="text-xs font-semibold text-[#1e5688]">
+                  <span class="only-zh">1. 前往哈兰避难</span>
+                  <span class="only-en">1. Fleeing to Haran</span>
+                </span>
               </div>
-              <div class="text-[10px] text-[#5c5042] pl-6">Fleeing to Haran · 创 Gen 28</div>
+              <div class="text-[10px] text-[#5c5042] pl-6">
+                <span class="only-zh">创世记 28</span>
+                <span class="only-en">Genesis 28</span>
+              </div>
             </div>
           </label>
           <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
@@ -359,9 +384,15 @@
             <div class="leading-tight">
               <div class="flex items-center gap-1.5">
                 <span class="inline-block w-5 h-0.5 bg-[#2d6a4f]"></span>
-                <span class="text-xs font-semibold text-[#2d6a4f]">2. 重返迦南（河东→西渡）</span>
+                <span class="text-xs font-semibold text-[#2d6a4f]">
+                  <span class="only-zh">2. 重返迦南（河东→西渡）</span>
+                  <span class="only-en">2. Return to Canaan (East → West)</span>
+                </span>
               </div>
-              <div class="text-[10px] text-[#5c5042] pl-6">Return to Canaan · 创 Gen 31–35</div>
+              <div class="text-[10px] text-[#5c5042] pl-6">
+                <span class="only-zh">创世记 31–35</span>
+                <span class="only-en">Genesis 31–35</span>
+              </div>
             </div>
           </label>
           <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
@@ -369,9 +400,15 @@
             <div class="leading-tight">
               <div class="flex items-center gap-1.5">
                 <span class="inline-block w-5 h-0.5 bg-[#c86d1f]"></span>
-                <span class="text-xs font-semibold text-[#c86d1f]">3. 下埃及歌珊地</span>
+                <span class="text-xs font-semibold text-[#c86d1f]">
+                  <span class="only-zh">3. 下埃及歌珊地</span>
+                  <span class="only-en">3. Journey to Egypt</span>
+                </span>
               </div>
-              <div class="text-[10px] text-[#5c5042] pl-6">Journey to Egypt · 创 Gen 46–47</div>
+              <div class="text-[10px] text-[#5c5042] pl-6">
+                <span class="only-zh">创世记 46–47</span>
+                <span class="only-en">Genesis 46–47</span>
+              </div>
             </div>
           </label>
           <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
@@ -379,14 +416,26 @@
             <div class="leading-tight">
               <div class="flex items-center gap-1.5">
                 <span class="inline-block w-5 border-t-2 border-dashed border-[#9b2226]"></span>
-                <span class="text-xs font-semibold text-[#9b2226]">4. 归葬希伯伦麦比拉洞</span>
+                <span class="text-xs font-semibold text-[#9b2226]">
+                  <span class="only-zh">4. 归葬希伯伦麦比拉洞</span>
+                  <span class="only-en">4. Burial Return to Machpelah</span>
+                </span>
               </div>
-              <div class="text-[10px] text-[#5c5042] pl-6">Burial Return · 创 Gen 50:1–14</div>
+              <div class="text-[10px] text-[#5c5042] pl-6">
+                <span class="only-zh">创世记 50:1–14</span>
+                <span class="only-en">Genesis 50:1–14</span>
+              </div>
             </div>
           </label>
           <div class="pt-1 border-t border-[#e0d5c0] flex gap-1.5">
-            <button onclick="showAllStages()" class="flex-1 text-[11px] py-1 rounded bg-[#e9dec6] hover:bg-[#dfd0b1] text-[#2b2520] font-medium">全部显示</button>
-            <button onclick="focusReturnToCanaan()" class="flex-1 text-[11px] py-1 rounded bg-[#dfece4] hover:bg-[#cde2d5] text-[#22543d] font-medium">聚焦约旦河渡口</button>
+            <button onclick="showAllStages()" class="flex-1 text-[11px] py-1 rounded bg-[#e9dec6] hover:bg-[#dfd0b1] text-[#2b2520] font-medium">
+              <span class="only-zh">全部显示</span>
+              <span class="only-en">Show All</span>
+            </button>
+            <button onclick="focusReturnToCanaan()" class="flex-1 text-[11px] py-1 rounded bg-[#dfece4] hover:bg-[#cde2d5] text-[#22543d] font-medium">
+              <span class="only-zh">聚焦约旦河渡口</span>
+              <span class="only-en">Jordan Crossing</span>
+            </button>
           </div>
         </div>
       </div>
@@ -422,9 +471,9 @@
         </div>
 
         <div class="flex flex-col bg-[#faf6ec] rounded-lg border border-[#8b7b65] shadow overflow-hidden">
-          <button onclick="mapZoom(1)" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520] border-b border-[#d5c7ae] font-bold text-base" title="放大">+</button>
-          <button onclick="mapZoom(-1)" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520] border-b border-[#d5c7ae] font-bold text-base" title="缩小">−</button>
-          <button onclick="applyPreset('full')" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520]" title="重置全景">
+          <button id="btn-zoom-in" onclick="mapZoom(1)" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520] border-b border-[#d5c7ae] font-bold text-base" title="放大">+</button>
+          <button id="btn-zoom-out" onclick="mapZoom(-1)" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520] border-b border-[#d5c7ae] font-bold text-base" title="缩小">−</button>
+          <button id="btn-zoom-reset" onclick="applyPreset('full')" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520]" title="重置全景">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
               <path d="M3 3v5h5"></path>
@@ -434,25 +483,37 @@
       </div>
     </section>
 
-    <!-- RIGHT: BILINGUAL BIBLE STUDY SIDEBAR (LSB + 和合本现代标点) -->
+    <!-- RIGHT: BILINGUAL BIBLE STUDY SIDEBAR -->
     <aside id="study-sidebar" class="parchment-panel w-full lg:w-[385px] xl:w-[425px] h-full border-l-2 border-[#8b7b65] flex flex-col shrink-0 z-20">
       <!-- Tour Navigation -->
       <div class="px-3 py-2 bg-[#efe5cf] border-b border-[#cbbba0] flex items-center justify-between gap-2 shrink-0">
         <div class="flex items-center gap-1.5">
-          <button onclick="stepTour(-1)" class="px-2 py-1 rounded bg-[#faf6ec] hover:bg-[#e5d8bc] border border-[#b4a186] text-xs font-medium">◀ 上一站</button>
+          <button onclick="stepTour(-1)" class="px-2 py-1 rounded bg-[#faf6ec] hover:bg-[#e5d8bc] border border-[#b4a186] text-xs font-medium">
+            <span class="only-zh">◀ 上一站</span>
+            <span class="only-en">◀ Prev</span>
+          </button>
           <button id="btn-autoplay" onclick="toggleAutoPlay()" class="px-2.5 py-1 rounded bg-[#2b2520] hover:bg-[#413830] text-[#faf6ec] text-xs font-medium">▶ 自动导览</button>
-          <button onclick="stepTour(1)" class="px-2 py-1 rounded bg-[#faf6ec] hover:bg-[#e5d8bc] border border-[#b4a186] text-xs font-medium">下一站 ▶</button>
+          <button onclick="stepTour(1)" class="px-2 py-1 rounded bg-[#faf6ec] hover:bg-[#e5d8bc] border border-[#b4a186] text-xs font-medium">
+            <span class="only-zh">下一站 ▶</span>
+            <span class="only-en">Next ▶</span>
+          </button>
         </div>
         <span id="step-counter" class="font-serif-atlas font-bold text-xs text-[#5c4a35] bg-[#faf6ec] px-2 py-0.5 rounded border border-[#cbbba0]">1 / 14</span>
       </div>
 
-      <!-- Active Milestone Card (LSB + 和合本现代标点) -->
+      <!-- Active Milestone Card -->
       <div id="detail-panel" class="p-3.5 border-b-2 border-[#cbbba0] bg-[#fcf9f2] shrink-0 max-h-[52%] overflow-y-auto atlas-scroll"></div>
 
       <!-- 14-Step Chronological Timeline -->
       <div class="px-3 py-1.5 bg-[#f3ebd8] border-b border-[#d9cbb2] flex items-center justify-between shrink-0">
-        <span class="font-serif-atlas font-bold text-xs text-[#5c4a35]">生平编年时间轴 · 14 Milestones</span>
-        <span class="text-[10px] text-[#7a6955]">点击自动飞抵定位</span>
+        <span class="font-serif-atlas font-bold text-xs text-[#5c4a35]">
+          <span class="only-zh">生平编年时间轴（14 站）</span>
+          <span class="only-en">Chronological Timeline (14)</span>
+        </span>
+        <span class="text-[10px] text-[#7a6955]">
+          <span class="only-zh">点击自动飞抵定位</span>
+          <span class="only-en">Click to fly to site</span>
+        </span>
       </div>
       <div id="timeline-container" class="flex-1 overflow-y-auto atlas-scroll p-2 space-y-1.5"></div>
     </aside>
@@ -466,6 +527,8 @@
          3. APPLICATION STATE & LEAFLET + COPERNICUS DEM (GLO-30) ENGINE
          ========================================================================= */
       const state = {
+        lang: 'zh',
+        neStatus: 'loading',
         activeStep: 1,
         visibleStages: new Set([1, 2, 3, 4]),
         reliefEnhanced: false,
@@ -483,8 +546,104 @@
       let neCanvasRenderer = null;
       let map = null;
 
+      /* Language-aware UI helpers */
+      function updateReliefButtonUI() {
+        const btn = document.getElementById('btn-3d-toggle');
+        if (!btn) return;
+        const isZh = state.lang === 'zh';
+        if (state.reliefEnhanced) {
+          btn.classList.add('bg-[#2b2520]', 'text-[#faf6ec]');
+          btn.classList.remove('bg-[#faf6ec]', 'text-[#2b2520]');
+          btn.textContent = isZh ? '标准地形' : 'Standard';
+        } else {
+          btn.classList.remove('bg-[#2b2520]', 'text-[#faf6ec]');
+          btn.classList.add('bg-[#faf6ec]', 'text-[#2b2520]');
+          btn.textContent = isZh ? '立体增强' : 'Relief +';
+        }
+      }
+
+      function updateAutoPlayButtonUI() {
+        const btn = document.getElementById('btn-autoplay');
+        if (!btn) return;
+        const isZh = state.lang === 'zh';
+        if (state.autoTimer) {
+          btn.textContent = isZh ? '⏸ 暂停导览' : '⏸ Pause';
+        } else {
+          btn.textContent = isZh ? '▶ 自动导览' : '▶ Auto Tour';
+        }
+      }
+
+      function updateSidebarButtonUI() {
+        const lbl = document.getElementById('sidebar-toggle-text');
+        if (!lbl) return;
+        const isZh = state.lang === 'zh';
+        if (state.sidebarVisible) {
+          lbl.textContent = isZh ? '隐藏研经栏' : 'Hide Study';
+        } else {
+          lbl.textContent = isZh ? '显示研经栏' : 'Show Study';
+        }
+      }
+
+      function updateNeStatusUI() {
+        const txt = document.getElementById('text-ne');
+        if (!txt) return;
+        const isZh = state.lang === 'zh';
+        const labels = {
+          loading: isZh ? 'Natural Earth 1:10m 加载中…' : 'Loading Natural Earth 1:10m…',
+          ready: isZh ? 'Natural Earth 1:10m 已就绪' : 'Natural Earth 1:10m Ready',
+          fallback: isZh ? 'Natural Earth 离线回退轮廓' : 'Natural Earth Offline Fallback',
+          libError: isZh ? 'Leaflet 地图库加载失败，请刷新重试' : 'Leaflet failed to load. Please refresh.',
+          initError: isZh ? '地图初始化失败' : 'Map initialization failed'
+        };
+        txt.textContent = labels[state.neStatus] || labels.loading;
+      }
+
+      function applyLanguageUI() {
+        const isZh = state.lang === 'zh';
+        document.documentElement.lang = isZh ? 'zh-CN' : 'en';
+        document.body.classList.toggle('lang-zh', isZh);
+        document.body.classList.toggle('lang-en', !isZh);
+        document.title = isZh
+          ? '雅各（以色列）生平与旅程地图'
+          : 'Atlas of the Life & Journeys of Jacob (Israel)';
+
+        const pillZh = document.getElementById('lang-pill-zh');
+        const pillEn = document.getElementById('lang-pill-en');
+        if (pillZh && pillEn) {
+          if (isZh) {
+            pillZh.classList.add('bg-[#2b2520]', 'text-[#faf6ec]');
+            pillZh.classList.remove('text-[#3b3228]');
+            pillEn.classList.remove('bg-[#2b2520]', 'text-[#faf6ec]');
+            pillEn.classList.add('text-[#3b3228]');
+          } else {
+            pillEn.classList.add('bg-[#2b2520]', 'text-[#faf6ec]');
+            pillEn.classList.remove('text-[#3b3228]');
+            pillZh.classList.remove('bg-[#2b2520]', 'text-[#faf6ec]');
+            pillZh.classList.add('text-[#3b3228]');
+          }
+        }
+
+        const zIn = document.getElementById('btn-zoom-in');
+        const zOut = document.getElementById('btn-zoom-out');
+        const zReset = document.getElementById('btn-zoom-reset');
+        if (zIn) zIn.title = isZh ? '放大' : 'Zoom In';
+        if (zOut) zOut.title = isZh ? '缩小' : 'Zoom Out';
+        if (zReset) zReset.title = isZh ? '重置全景' : 'Reset Full View';
+
+        updateReliefButtonUI();
+        updateAutoPlayButtonUI();
+        updateSidebarButtonUI();
+        updateNeStatusUI();
+        selectStep(state.activeStep, false);
+      }
+
       /* Register all global UI button handlers up front */
       window._selectStep = (s) => { stopAutoPlay(); selectStep(s, true); };
+
+      window.toggleLanguage = () => {
+        state.lang = state.lang === 'zh' ? 'en' : 'zh';
+        applyLanguageUI();
+      };
 
       window.applyPreset = (name) => {
         stopAutoPlay();
@@ -509,20 +668,7 @@
 
       window.toggle3DTerrain = () => {
         state.reliefEnhanced = !state.reliefEnhanced;
-        const btn = document.getElementById('btn-3d-toggle');
-        if (state.reliefEnhanced) {
-          if (btn) {
-            btn.classList.add('bg-[#2b2520]', 'text-[#faf6ec]');
-            btn.classList.remove('bg-[#faf6ec]', 'text-[#2b2520]');
-            btn.textContent = '标准地形';
-          }
-        } else {
-          if (btn) {
-            btn.classList.remove('bg-[#2b2520]', 'text-[#faf6ec]');
-            btn.classList.add('bg-[#faf6ec]', 'text-[#2b2520]');
-            btn.textContent = '立体增强';
-          }
-        }
+        updateReliefButtonUI();
         if (demLayer) demLayer.redraw();
       };
 
@@ -562,17 +708,16 @@
       };
 
       window.toggleAutoPlay = () => {
-        const btn = document.getElementById('btn-autoplay');
         if (state.autoTimer) {
           stopAutoPlay();
           return;
         }
-        if (btn) btn.textContent = '⏸ 暂停导览';
         selectStep(state.activeStep, true);
         state.autoTimer = setInterval(() => {
           const next = state.activeStep >= MILESTONES.length ? 1 : state.activeStep + 1;
           selectStep(next, true);
         }, 4200);
+        updateAutoPlayButtonUI();
       };
 
       window.toggleLegend = () => {
@@ -585,16 +730,14 @@
         state.sidebarVisible = !state.sidebarVisible;
         const sb = document.getElementById('study-sidebar');
         const mp = document.getElementById('map-pane');
-        const lbl = document.getElementById('sidebar-toggle-text');
         if (state.sidebarVisible) {
           sb.classList.remove('hidden', 'hidden-sidebar');
           mp.classList.remove('expanded-map');
-          if (lbl) lbl.textContent = '隐藏研经栏';
         } else {
           sb.classList.add('hidden', 'hidden-sidebar');
           mp.classList.add('expanded-map');
-          if (lbl) lbl.textContent = '显示研经栏';
         }
+        updateSidebarButtonUI();
         setTimeout(() => { if (map) map.invalidateSize(); }, 120);
       };
 
@@ -792,10 +935,9 @@
       function initMap() {
         if (typeof L === 'undefined') {
           const dotDem = document.getElementById('dot-dem');
-          const txtNe = document.getElementById('text-ne');
           if (dotDem) dotDem.className = 'w-2 h-2 rounded-full bg-red-600 shrink-0';
-          if (txtNe) txtNe.textContent = 'Leaflet 地图库加载失败，请刷新重试';
-          selectStep(1, false);
+          state.neStatus = 'libError';
+          applyLanguageUI();
           return;
         }
 
@@ -931,10 +1073,9 @@
         } catch (err) {
           console.error('Atlas initialization error:', err);
           const dotDem = document.getElementById('dot-dem');
-          const txtNe = document.getElementById('text-ne');
           if (dotDem) dotDem.className = 'w-2 h-2 rounded-full bg-red-600 shrink-0';
-          if (txtNe) txtNe.textContent = '地图初始化失败';
-          selectStep(1, false);
+          state.neStatus = 'initError';
+          applyLanguageUI();
         }
       }
 
@@ -942,10 +1083,10 @@
          4. NATURAL EARTH 1:10M HYDROGRAPHY & ANCIENT GEOGRAPHY MARKERS
          ========================================================================= */
       const STAGES = {
-        1: { id: 1, color: '#1e5688', bg: '#e5eff7', nameZh: '一、前往哈兰避难', nameEn: 'Fleeing to Haran', ref: '创 Gen 28', dashed: false },
-        2: { id: 2, color: '#2d6a4f', bg: '#e5f2ec', nameZh: '二、重返迦南', nameEn: 'Return to Canaan', ref: '创 Gen 31–35', dashed: false },
-        3: { id: 3, color: '#c86d1f', bg: '#f9ecdf', nameZh: '三、下埃及歌珊地', nameEn: 'Journey to Egypt', ref: '创 Gen 46–47', dashed: false },
-        4: { id: 4, color: '#9b2226', bg: '#f7e5e6', nameZh: '四、归葬迦南', nameEn: 'Burial Return', ref: '创 Gen 50:1–14', dashed: true }
+        1: { id: 1, color: '#1e5688', bg: '#e5eff7', nameZh: '一、前往哈兰避难', nameEn: '1. Fleeing to Haran', refZh: '创世记 28', refEn: 'Genesis 28', dashed: false },
+        2: { id: 2, color: '#2d6a4f', bg: '#e5f2ec', nameZh: '二、重返迦南', nameEn: '2. Return to Canaan', refZh: '创世记 31–35', refEn: 'Genesis 31–35', dashed: false },
+        3: { id: 3, color: '#c86d1f', bg: '#f9ecdf', nameZh: '三、下埃及歌珊地', nameEn: '3. Journey to Egypt', refZh: '创世记 46–47', refEn: 'Genesis 46–47', dashed: false },
+        4: { id: 4, color: '#9b2226', bg: '#f7e5e6', nameZh: '四、归葬迦南', nameEn: '4. Burial Return', refZh: '创世记 50:1–14', refEn: 'Genesis 50:1–14', dashed: true }
       };
 
       const MILESTONES = [
@@ -953,169 +1094,239 @@
           step: 1, siteId: 'beersheba', stage: 1,
           nameZh: '别是巴', nameEn: 'Beersheba',
           subtitleZh: '成长、得祝福与起程避难',
+          subtitleEn: 'Birthright, Blessing & Flight',
           lon: 34.791, lat: 31.245, zoom: 7.4,
-          geoBadge: '迦南南地 · 约旦河西',
-          ref: '创世记 Gen 25:26–34; 27; 28:10',
+          geoBadgeZh: '迦南南地 · 约旦河西',
+          geoBadgeEn: 'Negev · West of Jordan',
+          refZh: '创世记 25:26–34；27；28:10',
+          refEn: 'Genesis 25:26–34; 27; 28:10',
           summaryZh: '雅各成长于南地别是巴一带，先后得着长子名分与父亲以撒的祝福。因哥哥以扫怀恨追杀，雅各听从父母之命，离开别是巴起程前往巴旦·亚兰的哈兰。',
           summaryEn: 'Raised in the Negev around Beersheba, Jacob obtains the birthright and Isaac’s blessing, then flees Esau’s wrath toward Haran in Paddan-aram.',
-          quoteCuv: '“雅各出了别是巴，向哈兰走去。”（创世记 28:10，和合本现代标点）',
-          quoteLsb: '“Then Jacob departed from Beersheba and went toward Haran.” (Genesis 28:10, LSB)'
+          quoteCuv: '“雅各出了别是巴，向哈兰走去。”',
+          quoteRefZh: '创世记 28:10',
+          quoteLsb: '“Then Jacob departed from Beersheba and went toward Haran.”',
+          quoteRefEn: 'Genesis 28:10'
         },
         {
           step: 2, siteId: 'bethel', stage: 1,
           nameZh: '伯特利（初访）', nameEn: 'Bethel (1st Visit)',
           subtitleZh: '梦见天梯、立石为柱',
+          subtitleEn: 'Dream of the Ladder & Covenant',
           lon: 35.222, lat: 31.930, zoom: 8.5,
-          geoBadge: '约旦河西 · 中部山地',
-          ref: '创世记 Gen 28:10–22',
+          geoBadgeZh: '约旦河西 · 中部山地',
+          geoBadgeEn: 'Central Hill Country · West of Jordan',
+          refZh: '创世记 28:10–22',
+          refEn: 'Genesis 28:10–22',
           summaryZh: '雅各沿中央山脊北行，在路斯以石为枕露宿，梦见连接天地的梯子与神的使者。耶和华亲自重申亚伯拉罕之约，应许同在并领他归回此地；雅各立柱浇油，起名“伯特利”（神的殿）。',
           summaryEn: 'At Luz, Jacob dreams of a ladder reaching heaven. Yahweh reaffirms the Abrahamic covenant; Jacob anoints the stone pillar and names the place Bethel.',
-          quoteCuv: '“我也与你同在。你无论往哪里去，我必保佑你，领你归回这地，总不离弃你，直到我成全了向你所应许的。”（创世记 28:15，和合本现代标点）',
-          quoteLsb: '“Behold, I am with you and will keep you wherever you go. And I will bring you back to this land; for I will not forsake you until I have done what I have promised you.” (Genesis 28:15, LSB)'
+          quoteCuv: '“我也与你同在。你无论往哪里去，我必保佑你，领你归回这地，总不离弃你，直到我成全了向你所应许的。”',
+          quoteRefZh: '创世记 28:15',
+          quoteLsb: '“Behold, I am with you and will keep you wherever you go. And I will bring you back to this land; for I will not forsake you until I have done what I have promised you.”',
+          quoteRefEn: 'Genesis 28:15'
         },
         {
           step: 3, siteId: 'haran', stage: 1,
           nameZh: '哈兰（巴旦·亚兰）', nameEn: 'Haran (Paddan-aram)',
           subtitleZh: '服事拉班二十年、娶妻生子',
+          subtitleEn: 'Twenty Years with Laban',
           lon: 39.031, lat: 36.865, zoom: 7.0,
-          geoBadge: '幼发拉底河上游东北 · 美索不达米亚',
-          ref: '创世记 Gen 29–31',
+          geoBadgeZh: '幼发拉底河上游东北 · 美索不达米亚',
+          geoBadgeEn: 'Upper Euphrates · Mesopotamia',
+          refZh: '创世记 29–31',
+          refEn: 'Genesis 29–31',
           summaryZh: '雅各抵达母舅拉班所在的哈兰，在此服事二十年：为娶拉结与利亚服事十四年，为羊群服事六年。在此生下十一个儿子（便雅悯除外）与女儿底拿，神大大赐福他的家业。',
           summaryEn: 'In Haran, Jacob serves Laban for 20 years, marries Leah and Rachel, fathers eleven sons and Dinah, and prospers before Yahweh calls him home.',
-          quoteCuv: '“耶和华对雅各说：‘你要回你祖、你父之地，到你亲族那里去，我必与你同在。’”（创世记 31:3，和合本现代标点）',
-          quoteLsb: '“Then Yahweh said to Jacob, ‘Return to the land of your fathers and to your kin, and I will be with you.’” (Genesis 31:3, LSB)'
+          quoteCuv: '“耶和华对雅各说：‘你要回你祖、你父之地，到你亲族那里去，我必与你同在。’”',
+          quoteRefZh: '创世记 31:3',
+          quoteLsb: '“Then Yahweh said to Jacob, ‘Return to the land of your fathers and to your kin, and I will be with you.’”',
+          quoteRefEn: 'Genesis 31:3'
         },
         {
           step: 4, siteId: 'gilead', stage: 2,
           nameZh: '基列山', nameEn: 'Mount Gilead',
           subtitleZh: '与拉班立石为证、和平分手',
+          subtitleEn: 'Covenant Pillar with Laban',
           lon: 35.890, lat: 32.490, zoom: 8.6,
-          geoBadge: '约旦河东岸 · 基列山地',
-          ref: '创世记 Gen 31:21–55',
+          geoBadgeZh: '约旦河东岸 · 基列山地',
+          geoBadgeEn: 'East of Jordan · Gilead Highlands',
+          refZh: '创世记 31:21–55',
+          refEn: 'Genesis 31:21–55',
           summaryZh: '雅各携家眷渡过幼发拉底河，沿约旦河东岸南下至基列山。拉班追上雅各，经神夜间警戒后，二人在米斯巴堆石为证、立约和平分手。',
           summaryEn: 'Traveling south along the east side of the Jordan, Jacob is overtaken by Laban at Mount Gilead; they set up a stone heap as a covenant witness.',
-          quoteCuv: '“又叫米斯巴，意思说：‘我们彼此离别以后，愿耶和华在你我中间鉴察。’”（创世记 31:49，和合本现代标点）',
-          quoteLsb: '“and Mizpah, for he said, ‘May Yahweh watch between you and me when we are absent one from the other.’” (Genesis 31:49, LSB)'
+          quoteCuv: '“又叫米斯巴，意思说：‘我们彼此离别以后，愿耶和华在你我中间鉴察。’”',
+          quoteRefZh: '创世记 31:49',
+          quoteLsb: '“and Mizpah, for he said, ‘May Yahweh watch between you and me when we are absent one from the other.’”',
+          quoteRefEn: 'Genesis 31:49'
         },
         {
           step: 5, siteId: 'mahanaim', stage: 2,
           nameZh: '玛哈念', nameEn: 'Mahanaim',
           subtitleZh: '遇见神的使者（二队军兵）',
+          subtitleEn: 'Meeting the Angels of God',
           lon: 35.815, lat: 32.310, zoom: 9.2,
-          geoBadge: '约旦河东岸 · 雅博河北',
-          ref: '创世记 Gen 32:1–2',
+          geoBadgeZh: '约旦河东岸 · 雅博河北',
+          geoBadgeEn: 'East of Jordan · North of Jabbok',
+          refZh: '创世记 32:1–2',
+          refEn: 'Genesis 32:1–2',
           summaryZh: '继续沿约旦河东岸南行时，神的使者在此遇见雅各。雅各见这景象便说“这是神的军兵”，于是给那地方起名叫“玛哈念”（意为“二队军兵”），随后差人往西珥见以扫。',
           summaryEn: 'Angels of God meet Jacob east of the Jordan; he names the place Mahanaim (“Two Camps”) before sending messengers south to Esau.',
-          quoteCuv: '“雅各仍旧行路，神的使者遇见他。雅各看见他们就说：‘这是神的军兵。’于是给那地方起名叫玛哈念。”（创世记 32:1–2，和合本现代标点）',
-          quoteLsb: '“Now as Jacob went on his way, the angels of God met him. And Jacob said when he saw them, ‘This is God’s camp.’ So he named that place Mahanaim.” (Genesis 32:1–2, LSB)'
+          quoteCuv: '“雅各仍旧行路，神的使者遇见他。雅各看见他们就说：‘这是神的军兵。’于是给那地方起名叫玛哈念。”',
+          quoteRefZh: '创世记 32:1–2',
+          quoteLsb: '“Now as Jacob went on his way, the angels of God met him. And Jacob said when he saw them, ‘This is God’s camp.’ So he named that place Mahanaim.”',
+          quoteRefEn: 'Genesis 32:1–2'
         },
         {
           step: 6, siteId: 'penuel', stage: 2,
           nameZh: '毗努伊勒 / 雅博渡口', nameEn: 'Penuel / Jabbok Ford',
           subtitleZh: '与神摔跤，蒙赐新名“以色列”',
+          subtitleEn: 'Wrestling with God & Named Israel',
           lon: 35.720, lat: 32.185, zoom: 9.5,
-          geoBadge: '约旦河东岸 · 雅博河畔',
-          ref: '创世记 Gen 32:22–32',
+          geoBadgeZh: '约旦河东岸 · 雅博河畔',
+          geoBadgeEn: 'East of Jordan · Jabbok River',
+          refZh: '创世记 32:22–32',
+          refEn: 'Genesis 32:22–32',
           summaryZh: '雅各夜间送家眷过雅博渡口，独自留下与神摔跤直到黎明。大腿窝虽被摸瘸，他仍紧抓祝福不放，蒙神改名为“以色列”（与神与人较力都得了胜），遂称此地为“毗努伊勒”（神之面）。',
           summaryEn: 'At the ford of the Jabbok east of the Jordan, Jacob wrestles with God until daybreak and receives the new name Israel.',
-          quoteCuv: '“那人说：‘你的名不要再叫雅各，要叫以色列；因为你与神与人较力，都得了胜。’”（创世记 32:28，和合本现代标点）',
-          quoteLsb: '“And He said, ‘Your name shall no longer be Jacob, but Israel; for you have striven with God and with men and have prevailed.’” (Genesis 32:28, LSB)'
+          quoteCuv: '“那人说：‘你的名不要再叫雅各，要叫以色列；因为你与神与人较力，都得了胜。’”',
+          quoteRefZh: '创世记 32:28',
+          quoteLsb: '“And He said, ‘Your name shall no longer be Jacob, but Israel; for you have striven with God and with men and have prevailed.’”',
+          quoteRefEn: 'Genesis 32:28'
         },
         {
           step: 7, siteId: 'succoth', stage: 2,
           nameZh: '疏割', nameEn: 'Succoth',
           subtitleZh: '与以扫和好，在河东搭棚暂居',
+          subtitleEn: 'Reconciliation with Esau & Booths',
           lon: 35.622, lat: 32.198, zoom: 9.5,
-          geoBadge: '约旦河东岸 · 近约旦河谷',
-          ref: '创世记 Gen 33:1–17',
+          geoBadgeZh: '约旦河东岸 · 近约旦河谷',
+          geoBadgeEn: 'East of Jordan · Jordan Valley',
+          refZh: '创世记 33:1–17',
+          refEn: 'Genesis 33:1–17',
           summaryZh: '雅各与率四百人迎面而来的以扫相见，兄弟抱颈痛哭、彻底和好。以扫返回西珥后，雅各来到约旦河东谷地的疏割，为自己盖造房屋，又为牲畜搭棚。',
           summaryEn: 'After his emotional reconciliation with Esau, Jacob moves down to Succoth in the eastern Jordan Valley, building a house and booths for his livestock.',
-          quoteCuv: '“雅各就往疏割去，在那里为自己盖造房屋，又为牲畜搭棚；因此那地方名叫疏割。”（创世记 33:17，和合本现代标点）',
-          quoteLsb: '“And Jacob journeyed to Succoth and built for himself a house and made booths for his livestock; therefore the place is named Succoth.” (Genesis 33:17, LSB)'
+          quoteCuv: '“雅各就往疏割去，在那里为自己盖造房屋，又为牲畜搭棚；因此那地方名叫疏割。”',
+          quoteRefZh: '创世记 33:17',
+          quoteLsb: '“And Jacob journeyed to Succoth and built for himself a house and made booths for his livestock; therefore the place is named Succoth.”',
+          quoteRefEn: 'Genesis 33:17'
         },
         {
           step: 8, siteId: 'shechem', stage: 2,
           nameZh: '示剑', nameEn: 'Shechem',
           subtitleZh: '西渡约旦河入迦南、买地筑坛',
+          subtitleEn: 'Crossing West into Canaan & Altar',
           lon: 35.282, lat: 32.214, zoom: 9.0,
-          geoBadge: '西渡约旦河 · 约旦河西山地',
-          ref: '创世记 Gen 33:18–34:31',
+          geoBadgeZh: '西渡约旦河 · 约旦河西山地',
+          geoBadgeEn: 'West of Jordan · Central Highlands',
+          refZh: '创世记 33:18–34:31',
+          refEn: 'Genesis 33:18–34:31',
           summaryZh: '雅各从疏割向西渡过约旦河，平安抵达迦南地的示剑城，买下田地并筑坛起名“伊利·伊罗伊·以色列”。但随后发生女儿底拿受辱与西缅、利未屠城事件，雅各全家必须迁离。',
           summaryEn: 'Crossing westward over the Jordan River into Canaan, Jacob arrives safely at Shechem, buys land, and builds an altar; later the tragedy of Dinah unfolds here.',
-          quoteCuv: '“雅各从巴旦·亚兰回来的时候，平平安安地到了迦南地的示剑城，在城东支搭帐棚。”（创世记 33:18，和合本现代标点）',
-          quoteLsb: '“Now Jacob came safely to the city of Shechem, which is in the land of Canaan, when he came from Paddan-aram, and he camped before the city.” (Genesis 33:18, LSB)'
+          quoteCuv: '“雅各从巴旦·亚兰回来的时候，平平安安地到了迦南地的示剑城，在城东支搭帐棚。”',
+          quoteRefZh: '创世记 33:18',
+          quoteLsb: '“Now Jacob came safely to the city of Shechem, which is in the land of Canaan, when he came from Paddan-aram, and he camped before the city.”',
+          quoteRefEn: 'Genesis 33:18'
         },
         {
           step: 9, siteId: 'bethel', stage: 2,
           nameZh: '伯特利（重返）', nameEn: 'Bethel (Return)',
           subtitleZh: '除掉外邦神像、重申以色列之名',
+          subtitleEn: 'Purification & Covenant Renewed',
           lon: 35.222, lat: 31.930, zoom: 9.0,
-          geoBadge: '约旦河西 · 示剑之南',
-          ref: '创世记 Gen 35:1–15',
+          geoBadgeZh: '约旦河西 · 示剑之南',
+          geoBadgeEn: 'West of Jordan · South of Shechem',
+          refZh: '创世记 35:1–15',
+          refEn: 'Genesis 35:1–15',
           summaryZh: '神吩咐雅各上伯特利还愿。雅各命全家除掉外邦神像、自洁换衣，回到当年梦见天梯之处筑坛献祭。神再次向他显现，坚立“以色列”的新名与应许。',
           summaryEn: 'Obeying God’s command, Jacob purifies his household of foreign gods and returns south to Bethel to build an altar, where God reaffirms his name Israel.',
-          quoteCuv: '“神又对他说：‘你的名原是雅各，从今以后不要再叫雅各，要叫以色列。’这样，他就改名叫以色列。”（创世记 35:10，和合本现代标点）',
-          quoteLsb: '“And God said to him, ‘Your name is Jacob; you shall no longer be called Jacob, but Israel shall be your name.’ Thus He called him Israel.” (Genesis 35:10, LSB)'
+          quoteCuv: '“神又对他说：‘你的名原是雅各，从今以后不要再叫雅各，要叫以色列。’这样，他就改名叫以色列。”',
+          quoteRefZh: '创世记 35:10',
+          quoteLsb: '“And God said to him, ‘Your name is Jacob; you shall no longer be called Jacob, but Israel shall be your name.’ Thus He called him Israel.”',
+          quoteRefEn: 'Genesis 35:10'
         },
         {
           step: 10, siteId: 'bethlehem', stage: 2,
           nameZh: '伯利恒（以法他）', nameEn: 'Bethlehem (Ephrath)',
           subtitleZh: '便雅悯出生、拉结难产去世',
+          subtitleEn: 'Birth of Benjamin & Death of Rachel',
           lon: 35.202, lat: 31.705, zoom: 9.0,
-          geoBadge: '约旦河西 · 伯特利之南',
-          ref: '创世记 Gen 35:16–20',
+          geoBadgeZh: '约旦河西 · 伯特利之南',
+          geoBadgeEn: 'West of Jordan · South of Bethel',
+          refZh: '创世记 35:16–20',
+          refEn: 'Genesis 35:16–20',
           summaryZh: '从伯特利继续沿河西山地南行，离以法他（伯利恒）还有一段路程时，爱妻拉结难产去世，生下幼子便雅悯。雅各将拉结葬在以法他的路旁，并在坟上立碑纪念。',
           summaryEn: 'Continuing south from Bethel along the central ridge west of the Dead Sea, Rachel dies giving birth to Benjamin and is buried on the way to Ephrath (Bethlehem).',
-          quoteCuv: '“拉结死了，葬在以法他的路旁；以法他就是伯利恒。”（创世记 35:19，和合本现代标点）',
-          quoteLsb: '“So Rachel died and was buried on the way to Ephrath (that is, Bethlehem).” (Genesis 35:19, LSB)'
+          quoteCuv: '“拉结死了，葬在以法他的路旁；以法他就是伯利恒。”',
+          quoteRefZh: '创世记 35:19',
+          quoteLsb: '“So Rachel died and was buried on the way to Ephrath (that is, Bethlehem).”',
+          quoteRefEn: 'Genesis 35:19'
         },
         {
           step: 11, siteId: 'hebron', stage: 2,
           nameZh: '希伯伦（幔利）', nameEn: 'Hebron (Mamre)',
           subtitleZh: '与父以撒重逢、定居与哀哭约瑟',
+          subtitleEn: 'Reunion with Isaac & Mourning Joseph',
           lon: 35.105, lat: 31.525, zoom: 8.8,
-          geoBadge: '约旦河西 · 犹大山地',
-          ref: '创世记 Gen 35:27–29; 37:14',
+          geoBadgeZh: '约旦河西 · 犹大山地',
+          geoBadgeEn: 'West of Jordan · Judean Hills',
+          refZh: '创世记 35:27–29；37:14',
+          refEn: 'Genesis 35:27–29; 37:14',
           summaryZh: '雅各南抵希伯伦幔利，与年迈的父亲以撒重逢；以撒享年180岁寿终，由以扫和雅各共同安葬于麦比拉洞。此后雅各定居希伯伦谷，并在此经历约瑟被兄长出卖的哀痛。',
           summaryEn: 'Jacob arrives at Hebron to reunite with Isaac, whom he and Esau bury in Machpelah. Jacob settles here and later mourns the presumed death of Joseph.',
-          quoteCuv: '“雅各来到他父亲以撒那里，到了基列·亚巴的幔利，乃是亚伯拉罕和以撒寄居的地方；基列·亚巴就是希伯伦。”（创世记 35:27，和合本现代标点）',
-          quoteLsb: '“Then Jacob came to his father Isaac at Mamre of Kiriath-arba (that is, Hebron), where Abraham and Isaac had sojourned.” (Genesis 35:27, LSB)'
+          quoteCuv: '“雅各来到他父亲以撒那里，到了基列·亚巴的幔利，乃是亚伯拉罕和以撒寄居的地方；基列·亚巴就是希伯伦。”',
+          quoteRefZh: '创世记 35:27',
+          quoteLsb: '“Then Jacob came to his father Isaac at Mamre of Kiriath-arba (that is, Hebron), where Abraham and Isaac had sojourned.”',
+          quoteRefEn: 'Genesis 35:27'
         },
         {
           step: 12, siteId: 'beersheba', stage: 3,
           nameZh: '别是巴（下埃及前）', nameEn: 'Beersheba (En Route)',
           subtitleZh: '献祭求问、得神异象应许',
+          subtitleEn: 'Sacrifice & Night Vision Before Egypt',
           lon: 34.791, lat: 31.245, zoom: 7.4,
-          geoBadge: '迦南南地 · 赴埃及前最后一站',
-          ref: '创世记 Gen 46:1–5',
+          geoBadgeZh: '迦南南地 · 赴埃及前最后一站',
+          geoBadgeEn: 'Negev · Final Stop in Canaan',
+          refZh: '创世记 46:1–5',
+          refEn: 'Genesis 46:1–5',
           summaryZh: '迦南地大饥荒，雅各得知约瑟仍在埃及作宰相，便起程南下。在离开迦南前的最后一站别是巴，他向神献祭，神在夜间异象中安慰他：“你下埃及去不要害怕，我必使你在那里成为大族。”',
           summaryEn: 'Stopping at Beersheba during the famine, Jacob offers sacrifices and receives God’s nighttime assurance to go down to Egypt without fear.',
-          quoteCuv: '“神说：‘我是神，就是你父亲的神。你下埃及去不要害怕，因为我必使你在那里成为大族。’”（创世记 46:3，和合本现代标点）',
-          quoteLsb: '“And He said, ‘I am God, the God of your father; do not be afraid to go down to Egypt, for I will make you a great nation there.’” (Genesis 46:3, LSB)'
+          quoteCuv: '“神说：‘我是神，就是你父亲的神。你下埃及去不要害怕，因为我必使你在那里成为大族。’”',
+          quoteRefZh: '创世记 46:3',
+          quoteLsb: '“And He said, ‘I am God, the God of your father; do not be afraid to go down to Egypt, for I will make you a great nation there.’”',
+          quoteRefEn: 'Genesis 46:3'
         },
         {
           step: 13, siteId: 'goshen', stage: 3,
           nameZh: '歌珊地（埃及）', nameEn: 'Goshen, Egypt',
           subtitleZh: '父子重逢、祝福众子、147岁逝世',
+          subtitleEn: 'Reunion with Joseph & Final Blessing',
           lon: 31.680, lat: 30.780, zoom: 7.0,
-          geoBadge: '埃及 · 尼罗河三角洲东缘',
-          ref: '创世记 Gen 46:28–49:33',
+          geoBadgeZh: '埃及 · 尼罗河三角洲东缘',
+          geoBadgeEn: 'Egypt · Eastern Nile Delta',
+          refZh: '创世记 46:28–49:33',
+          refEn: 'Genesis 46:28–49:33',
           summaryZh: '雅各率领全家七十口沿西奈北岸沿海大道进入埃及歌珊地，与分别二十二年的爱子约瑟相拥而泣，并蒙法老赐予肥沃牧场。雅各在埃及安度十七年，临终前为十二个儿子预言祝福，享年147岁。',
           summaryEn: 'Jacob and his household of 70 settle in fertile Goshen in the eastern Nile Delta, reuniting with Joseph. After 17 years, Jacob blesses his twelve sons and dies at 147.',
-          quoteCuv: '“以色列人住在埃及的歌珊地。他们在那里置了产业，并且生育甚多。”（创世记 47:27，和合本现代标点）',
-          quoteLsb: '“Now Israel lived in the land of Egypt, in Goshen, and they acquired property in it and were fruitful and became very numerous.” (Genesis 47:27, LSB)'
+          quoteCuv: '“以色列人住在埃及的歌珊地。他们在那里置了产业，并且生育甚多。”',
+          quoteRefZh: '创世记 47:27',
+          quoteLsb: '“Now Israel lived in the land of Egypt, in Goshen, and they acquired property in it and were fruitful and became very numerous.”',
+          quoteRefEn: 'Genesis 47:27'
         },
         {
           step: 14, siteId: 'hebron', stage: 4,
           nameZh: '麦比拉洞（希伯伦）', nameEn: 'Cave of Machpelah (Hebron)',
           subtitleZh: '隆重送葬队归葬先祖之墓',
+          subtitleEn: 'Burial Procession to the Ancestral Tomb',
           lon: 35.105, lat: 31.525, zoom: 7.2,
-          geoBadge: '埃及 → 迦南希伯伦',
-          ref: '创世记 Gen 50:1–14',
+          geoBadgeZh: '埃及 → 迦南希伯伦',
+          geoBadgeEn: 'Egypt → Hebron in Canaan',
+          refZh: '创世记 50:1–14',
+          refEn: 'Genesis 50:1–14',
           summaryZh: '遵照雅各临终遗愿，约瑟率众兄弟与埃及众臣仆组成庞大送葬车队，将雅各遗体运回迦南（经亚达的禾场举哀七日），最终安葬在希伯伦幔利前的麦比拉洞，与亚伯拉罕、以撒及利亚同葬。',
           summaryEn: 'Honoring Jacob’s dying oath, Joseph and a grand Egyptian procession carry Jacob’s body back to Canaan and bury him in the Cave of Machpelah at Hebron.',
-          quoteCuv: '“他儿子们就把他搬到迦南地，葬在幔利前、麦比拉田间的洞里；那洞是亚伯拉罕向赫人以弗仑买来作坟地的。”（创世记 50:13，和合本现代标点）',
-          quoteLsb: '“for his sons carried him to the land of Canaan and buried him in the cave of the field at Machpelah before Mamre, which Abraham had bought along with the field for a burial site from Ephron the Hittite.” (Genesis 50:13, LSB)'
+          quoteCuv: '“他儿子们就把他搬到迦南地，葬在幔利前、麦比拉田间的洞里；那洞是亚伯拉罕向赫人以弗仑买来作坟地的。”',
+          quoteRefZh: '创世记 50:13',
+          quoteLsb: '“for his sons carried him to the land of Canaan and buried him in the cave of the field at Machpelah before Mamre, which Abraham had bought along with the field for a burial site from Ephron the Hittite.”',
+          quoteRefEn: 'Genesis 50:13'
         }
       ];
 
@@ -1262,7 +1473,6 @@
 
       async function loadNaturalEarth10m() {
         const dot = document.getElementById('dot-ne');
-        const txt = document.getElementById('text-ne');
         try {
           const [ocean, coast, lakes, rivers] = await Promise.all([
             fetchNaturalEarthLayer('ne_10m_ocean.geojson'),
@@ -1295,14 +1505,16 @@
 
           if (loadedCount > 0) {
             dot.className = 'w-2 h-2 rounded-full bg-emerald-600 shrink-0';
-            txt.textContent = 'Natural Earth 1:10m 已就绪';
+            state.neStatus = 'ready';
           } else {
             dot.className = 'w-2 h-2 rounded-full bg-amber-600 shrink-0';
-            txt.textContent = 'Natural Earth 离线回退轮廓';
+            state.neStatus = 'fallback';
           }
+          updateNeStatusUI();
         } catch (err) {
           dot.className = 'w-2 h-2 rounded-full bg-amber-600 shrink-0';
-          txt.textContent = 'Natural Earth 离线回退轮廓';
+          state.neStatus = 'fallback';
+          updateNeStatusUI();
         }
       }
 
@@ -1320,8 +1532,8 @@
             className: 'geo-label-water',
             iconSize: [0, 0],
             html: `<div style="transform:translate(-50%,-50%);font-size:${w.size}px;">
-              <div>${w.zh}</div>
-              <div style="font-size:${w.size * 0.8}px;opacity:0.9">${w.en}</div>
+              <div class="only-zh">${w.zh}</div>
+              <div class="only-en">${w.en}</div>
             </div>`
           });
           L.marker([w.lat, w.lon], { icon, interactive: false }).addTo(map);
@@ -1339,8 +1551,8 @@
             className: 'geo-label-region',
             iconSize: [0, 0],
             html: `<div style="transform:translate(-50%,-50%);font-size:${r.size}px;">
-              <div>${r.zh}</div>
-              <div style="font-size:${r.size * 0.72}px">${r.en}</div>
+              <div class="only-zh">${r.zh}</div>
+              <div class="only-en">${r.en}</div>
             </div>`
           });
           L.marker([r.lat, r.lon], { icon, interactive: false }).addTo(map);
@@ -1350,7 +1562,10 @@
         const cIcon = L.divIcon({
           className: '',
           iconSize: [0, 0],
-          html: `<div class="jordan-callout" style="transform:translate(-50%,-100%);">← 西渡约旦河入迦南</div>`
+          html: `<div class="jordan-callout" style="transform:translate(-50%,-100%);">
+            <span class="only-zh">← 西渡约旦河入迦南</span>
+            <span class="only-en">← Westward Crossing into Canaan</span>
+          </div>`
         });
         jordanCalloutMarker = L.marker([32.245, 35.46], { icon: cIcon, interactive: false }).addTo(map);
         if (jordanCalloutMarker.getElement()) {
@@ -1369,8 +1584,8 @@
                 <div class="site-pin-pulse"></div>
                 <div class="site-pin-dot" style="background:${site.color};">${site.badge}</div>
                 <div class="site-pin-label align-${site.align}">
-                  <span class="lbl-zh">${site.zh}</span>
-                  <span class="lbl-en">${site.en}</span>
+                  <span class="lbl-zh only-zh">${site.zh}</span>
+                  <span class="lbl-en only-en">${site.en}</span>
                 </div>
               </div>
             `
@@ -1452,6 +1667,7 @@
 
         // Highlight incoming route segment
         const activeFeature = ROUTES_GEOJSON.features.find(f => f.properties.toStep === m.step);
+        const st = STAGES[m.stage];
         if (activeRouteLayer) {
           activeRouteLayer.clearLayers();
           if (activeFeature) {
@@ -1463,38 +1679,47 @@
             L.geoJSON(activeFeature, {
               pane: 'routesPane',
               interactive: false,
-              style: { color: '#2b2520', weight: 2.6, dashArray: '5 5', lineCap: 'round' }
+              style: {
+                color: st.color,
+                weight: 4.5,
+                opacity: 1,
+                dashArray: st.dashed ? '7 5' : null,
+                lineCap: 'round'
+              }
             }).addTo(activeRouteLayer);
           }
         }
 
-        // Render Detail Card with Bilingual LSB + 和合本现代标点 Scripture
-        const st = STAGES[m.stage];
+        // Render Detail Card in active language (direct CUV / LSB scripture without version tags)
+        const isZh = state.lang === 'zh';
+        const stageName = isZh ? st.nameZh : st.nameEn;
+        const geoBadge = isZh ? m.geoBadgeZh : m.geoBadgeEn;
+        const title = isZh ? m.nameZh : m.nameEn;
+        const subtitle = isZh ? m.subtitleZh : m.subtitleEn;
+        const refText = isZh ? m.refZh : m.refEn;
+        const summary = isZh ? m.summaryZh : m.summaryEn;
+        const quoteText = isZh ? m.quoteCuv : m.quoteLsb;
+        const quoteRef = isZh ? `—— ${m.quoteRefZh}` : `— ${m.quoteRefEn}`;
+
         document.getElementById('step-counter').textContent = `${m.step} / ${MILESTONES.length}`;
         document.getElementById('detail-panel').innerHTML = `
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:${st.bg}; color:${st.color};">
-              ${st.nameZh}
+              ${stageName}
             </span>
-            <span class="text-[11px] text-[#6d5f4e] font-medium">${m.geoBadge}</span>
+            <span class="text-[11px] text-[#6d5f4e] font-medium">${geoBadge}</span>
           </div>
           <div class="flex items-baseline gap-2 mb-0.5">
             <span class="w-6 h-6 rounded-full text-xs font-bold text-white inline-flex items-center justify-center shrink-0" style="background:${st.color};">${m.step}</span>
-            <h2 class="font-serif-atlas font-bold text-lg text-[#2b2520] leading-snug">${m.nameZh}</h2>
-            <span class="font-serif-atlas italic text-sm text-[#625546]">${m.nameEn}</span>
+            <h2 class="font-serif-atlas font-bold text-lg text-[#2b2520] leading-snug">${title}</h2>
           </div>
-          <div class="text-xs font-semibold text-[#5c4a35] mb-2 pl-8">${m.subtitleZh} · <span class="font-normal text-[#7a6955]">${m.ref}</span></div>
-          <p class="text-xs text-[#2b2520] leading-relaxed mb-1.5">${m.summaryZh}</p>
-          <p class="font-serif-atlas text-[12.5px] text-[#5c5042] leading-snug mb-2.5">${m.summaryEn}</p>
+          <div class="text-xs font-semibold text-[#5c4a35] mb-2 pl-8">${subtitle} · <span class="font-normal text-[#7a6955]">${refText}</span></div>
+          <p class="${isZh ? 'text-xs leading-relaxed' : 'font-serif-atlas text-[13.5px] leading-snug'} text-[#2b2520] mb-2.5">${summary}</p>
 
-          <!-- Bilingual Scripture Box: 和合本现代标点 + Legacy Standard Bible (LSB) -->
-          <div class="border-l-2 pl-2.5 py-2 pr-2 bg-[#f5efe0] rounded-r space-y-1.5" style="border-color:${st.color};">
-            <div class="flex items-center gap-1.5">
-              <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-[#e8dcc2] text-[#4e4030]">和合本现代标点</span>
-              <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-[#e8dcc2] text-[#4e4030]">LSB (Legacy Standard Bible)</span>
-            </div>
-            <p class="text-xs text-[#2b2520] font-serif-atlas leading-relaxed">${m.quoteCuv}</p>
-            <p class="text-[12.5px] text-[#4d4134] font-serif-atlas italic leading-snug">${m.quoteLsb}</p>
+          <!-- Direct Scripture Quotation -->
+          <div class="border-l-2 pl-2.5 py-2 pr-2.5 bg-[#f5efe0] rounded-r space-y-1" style="border-color:${st.color};">
+            <p class="${isZh ? 'text-xs leading-relaxed' : 'text-[13px] italic leading-snug'} text-[#2b2520] font-serif-atlas">${quoteText}</p>
+            <div class="text-right text-[11px] text-[#6a5b49] font-serif-atlas">${quoteRef}</div>
           </div>
         `;
 
@@ -1519,6 +1744,7 @@
       }
 
       function renderTimeline() {
+        const isZh = state.lang === 'zh';
         const container = document.getElementById('timeline-container');
         let html = '';
         let currentStage = 0;
@@ -1526,9 +1752,14 @@
           const st = STAGES[m.stage];
           if (m.stage !== currentStage) {
             currentStage = m.stage;
-            html += `<div class="pt-1.5 pb-0.5 px-1 text-[11px] font-bold tracking-wide" style="color:${st.color};">${st.nameZh} · ${st.ref}</div>`;
+            const stTitle = isZh ? st.nameZh : st.nameEn;
+            const stRef = isZh ? st.refZh : st.refEn;
+            html += `<div class="pt-1.5 pb-0.5 px-1 text-[11px] font-bold tracking-wide" style="color:${st.color};">${stTitle} · ${stRef}</div>`;
           }
           const isActive = m.step === state.activeStep;
+          const mName = isZh ? m.nameZh : m.nameEn;
+          const mSub = isZh ? m.subtitleZh : m.subtitleEn;
+          const mRef = isZh ? m.quoteRefZh : m.quoteRefEn;
           html += `
             <button id="row-step-${m.step}" onclick="window._selectStep(${m.step})"
               class="w-full text-left px-2.5 py-2 rounded-lg border transition-all flex items-start gap-2.5 ${
@@ -1537,10 +1768,10 @@
               <span class="w-5 h-5 mt-0.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shrink-0" style="background:${st.color};">${m.step}</span>
               <div class="min-w-0 flex-1">
                 <div class="flex items-baseline justify-between gap-1">
-                  <span class="text-xs font-bold text-[#2b2520] truncate">${m.nameZh}</span>
-                  <span class="text-[10px] text-[#7a6955] shrink-0">${m.nameEn}</span>
+                  <span class="text-xs font-bold text-[#2b2520] truncate">${mName}</span>
+                  <span class="text-[10px] text-[#7a6955] shrink-0">${mRef}</span>
                 </div>
-                <div class="text-[11px] text-[#5c5042] truncate">${m.subtitleZh}</div>
+                <div class="text-[11px] text-[#5c5042] truncate">${mSub}</div>
               </div>
             </button>
           `;
@@ -1555,8 +1786,7 @@
         if (state.autoTimer) {
           clearInterval(state.autoTimer);
           state.autoTimer = null;
-          const btn = document.getElementById('btn-autoplay');
-          if (btn) btn.textContent = '▶ 自动导览';
+          updateAutoPlayButtonUI();
         }
       }
 
