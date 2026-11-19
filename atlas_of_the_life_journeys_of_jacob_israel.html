@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>雅各（以色列）生平与旅程地图 | Copernicus DEM GLO-30 &amp; Natural Earth 1:10m</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet 1.9.4 (sandbox/iframe-safe cartographic engine for Copernicus DEM GLO-30 + Natural Earth 1:10m) -->
+  <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Publication Typography: EB Garamond + Noto Serif SC + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --parchment-bg: #f3ebd8;
+      --parchment-card: #faf6ec;
+      --ink: #2b2520;
+      --ink-muted: #5f5243;
+      --border-atlas: #8b7b65;
+      --stage-1: #1e5688;
+      --stage-2: #2d6a4f;
+      --stage-3: #c86d1f;
+      --stage-4: #9b2226;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #e9e0cc;
+      color: var(--ink);
+      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .font-serif-atlas {
+      font-family: 'EB Garamond', 'Noto Serif SC', Georgia, serif;
+    }
+
+    .parchment-panel {
+      background-color: var(--parchment-card);
+      background-image: linear-gradient(180deg, rgba(255,253,248,0.82) 0%, rgba(235,224,200,0.38) 100%);
+    }
+
+    .atlas-frame {
+      border: 1.5px solid var(--border-atlas);
+      box-shadow: inset 0 0 0 2px #faf6ec, inset 0 0 0 3px rgba(139,123,101,0.45), 0 6px 18px rgba(43,37,32,0.16);
+    }
+
+    /* Classic Double-Line Atlas Frame over Map Canvas */
+    #map-container {
+      width: 100%;
+      height: 100%;
+      background-color: #bed7e5;
+    }
+
+    .map-neatline-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 8px;
+      border: 1.5px solid rgba(93, 80, 64, 0.72);
+      box-shadow: inset 0 0 0 3px rgba(250, 246, 236, 0.45), inset 0 0 0 4px rgba(139, 123, 101, 0.45);
+      z-index: 5;
+    }
+
+    /* Custom Cartographic MapLibre Markers */
+    .geo-label-water {
+      pointer-events: none;
+      text-align: center;
+      font-family: 'EB Garamond', 'Noto Serif SC', Georgia, serif;
+      font-style: italic;
+      color: #214e66;
+      text-shadow: 0 0 4px rgba(206, 226, 237, 0.95), 0 0 8px rgba(206, 226, 237, 0.85);
+      line-height: 1.15;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .geo-label-region {
+      pointer-events: none;
+      text-align: center;
+      font-family: 'EB Garamond', 'Noto Serif SC', Georgia, serif;
+      color: rgba(88, 72, 52, 0.68);
+      letter-spacing: 0.14em;
+      text-shadow: 0 0 4px rgba(245, 238, 220, 0.9);
+      line-height: 1.2;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .jordan-callout {
+      pointer-events: none;
+      background: rgba(229, 242, 236, 0.94);
+      border: 1px solid #2d6a4f;
+      color: #1c4a35;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.14);
+      white-space: nowrap;
+    }
+
+    /* Biblical Site Pin Marker */
+    .site-marker-wrap {
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .site-pin-dot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 5px;
+      border-radius: 9999px;
+      color: #ffffff;
+      font-size: 10.5px;
+      font-weight: 700;
+      border: 2px solid #faf6ec;
+      box-shadow: 0 2px 6px rgba(30, 24, 18, 0.35);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .site-marker-wrap:hover .site-pin-dot {
+      transform: scale(1.16);
+      box-shadow: 0 3px 10px rgba(30, 24, 18, 0.45);
+    }
+
+    .site-pin-pulse {
+      position: absolute;
+      inset: -5px;
+      border-radius: 9999px;
+      border: 2.5px solid currentColor;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.85); opacity: 0.9; }
+      100% { transform: scale(2.1); opacity: 0; }
+    }
+
+    .site-marker-wrap.is-active .site-pin-pulse {
+      animation: pulseRing 1.7s ease-out infinite;
+    }
+
+    .site-marker-wrap.is-active .site-pin-dot {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 2px rgba(43, 37, 32, 0.65), 0 3px 10px rgba(0,0,0,0.35);
+    }
+
+    .site-pin-label {
+      position: absolute;
+      pointer-events: none;
+      white-space: nowrap;
+      line-height: 1.15;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(250, 246, 236, 0.88);
+      border: 1px solid rgba(139, 123, 101, 0.35);
+      box-shadow: 0 1px 4px rgba(43, 37, 32, 0.12);
+    }
+
+    .site-pin-label.align-left {
+      right: calc(100% + 7px);
+      top: 50%;
+      transform: translateY(-50%);
+      text-align: right;
+    }
+
+    .site-pin-label.align-right {
+      left: calc(100% + 7px);
+      top: 50%;
+      transform: translateY(-50%);
+      text-align: left;
+    }
+
+    .site-pin-label.align-top {
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    .site-pin-label.align-bottom {
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    .site-pin-label .lbl-zh {
+      font-family: 'Noto Serif SC', 'Noto Sans SC', serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #221d18;
+      display: block;
+    }
+
+    .site-pin-label .lbl-en {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #544739;
+      display: block;
+    }
+
+    /* Hide dense Jordan labels slightly at low zoom unless hovered/active */
+    .compact-zoom .site-marker-wrap.is-dense:not(.is-active):not(:hover) .site-pin-label {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .site-marker-wrap .site-pin-label {
+      transition: opacity 0.2s ease;
+    }
+
+    /* Leaflet overrides for clean antique atlas styling */
+    .leaflet-container {
+      background: #bed7e5 !important;
+      font-family: 'Inter', 'Noto Sans SC', sans-serif !important;
+    }
+
+    .leaflet-div-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .leaflet-control-scale {
+      margin-bottom: 14px !important;
+      margin-left: 14px !important;
+    }
+
+    .leaflet-control-scale-line {
+      background: rgba(250, 246, 236, 0.92) !important;
+      border-color: #2b2520 !important;
+      color: #2b2520 !important;
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 10px !important;
+      padding: 1px 6px !important;
+      border-radius: 3px !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+
+    .atlas-scroll::-webkit-scrollbar { width: 6px; }
+    .atlas-scroll::-webkit-scrollbar-track { background: rgba(139,123,101,0.08); }
+    .atlas-scroll::-webkit-scrollbar-thumb { background: rgba(139,123,101,0.35); border-radius: 9999px; }
+
+    @media (max-width: 960px) {
+      #workspace { flex-direction: column; }
+      #map-pane { height: 55%; width: 100%; }
+      #study-sidebar {
+        height: 45%;
+        width: 100% !important;
+        border-left: none !important;
+        border-top: 2px solid var(--border-atlas);
+      }
+      #study-sidebar.hidden-sidebar { display: none; }
+      #map-pane.expanded-map { height: 100%; }
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen w-screen overflow-hidden">
+
+  <!-- TOP HEADER BAR -->
+  <header class="parchment-panel border-b-2 border-[#8b7b65] px-3 sm:px-4 py-2 flex items-center justify-between gap-2 shrink-0 z-30 shadow-sm">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="hidden sm:flex w-8 h-8 rounded-full border border-[#8b7b65] bg-[#f3ebd8] items-center justify-center shrink-0">
+        <svg class="w-4 h-4 text-[#5c4a35]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="9"></circle>
+          <polygon points="12,4 14.3,10.3 20,12 14.3,13.7 12,20 9.7,13.7 4,12 9.7,10.3" fill="rgba(139,123,101,0.25)"></polygon>
+        </svg>
+      </div>
+      <div class="truncate">
+        <div class="flex items-baseline gap-2">
+          <h1 class="font-serif-atlas font-bold text-base sm:text-lg text-[#2b2520] truncate">
+            雅各（以色列）生平与旅程地图
+          </h1>
+          <span class="hidden md:inline-block text-[10.5px] font-medium px-2 py-0.5 rounded-full bg-[#e9dec6] text-[#5c4a35] border border-[#c7b698]">
+            创世记 Gen 25–50 · LSB + 和合本现代标点
+          </span>
+        </div>
+        <p class="font-serif-atlas italic text-[11px] text-[#6a5b49] truncate -mt-0.5">
+          Copernicus DEM (GLO-30) Relief · Natural Earth 1:10m Coastline &amp; Hydrology
+        </p>
+      </div>
+    </div>
+
+    <!-- VIEW PRESETS + 3D TERRAIN TOGGLE -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <div class="flex items-center gap-1 bg-[#ede3cc] p-1 rounded-lg border border-[#c8b89c]">
+        <button id="btn-preset-full" onclick="applyPreset('full')" class="preset-btn px-2 py-1 rounded-md text-xs font-medium bg-[#2b2520] text-[#faf6ec] transition-colors">
+          全景 <span class="hidden lg:inline opacity-75">Full</span>
+        </button>
+        <button id="btn-preset-canaan" onclick="applyPreset('canaan')" class="preset-btn px-2 py-1 rounded-md text-xs font-medium text-[#3b3228] hover:bg-[#faf6ec] transition-colors">
+          迦南详图 <span class="hidden lg:inline opacity-75">Canaan</span>
+        </button>
+        <button id="btn-preset-egypt" onclick="applyPreset('egypt')" class="preset-btn px-2 py-1 rounded-md text-xs font-medium text-[#3b3228] hover:bg-[#faf6ec] transition-colors">
+          埃及归葬 <span class="hidden lg:inline opacity-75">Egypt</span>
+        </button>
+      </div>
+
+      <button id="btn-3d-toggle" onclick="toggle3DTerrain()" class="px-2.5 py-1.5 rounded-lg border border-[#8b7b65] bg-[#faf6ec] hover:bg-[#efe5cf] text-xs font-semibold text-[#2b2520] transition-colors" title="Toggle Enhanced Copernicus GLO-30 Hillshade Relief">
+        立体增强
+      </button>
+
+      <button onclick="toggleSidebar()" class="px-2.5 py-1.5 rounded-lg border border-[#8b7b65] bg-[#faf6ec] hover:bg-[#efe5cf] text-xs font-medium text-[#2b2520] flex items-center gap-1 transition-colors">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <line x1="15" y1="4" x2="15" y2="20"></line>
+        </svg>
+        <span id="sidebar-toggle-text" class="hidden sm:inline">隐藏研经栏</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <div id="workspace" class="flex flex-1 min-h-0 overflow-hidden">
+
+    <!-- LEFT: MAPLIBRE GL INTERACTIVE PHYSICAL MAP -->
+    <section id="map-pane" class="relative flex-1 min-w-0 h-full">
+      <div id="map-container" class="compact-zoom"></div>
+      <div class="map-neatline-overlay"></div>
+
+      <!-- FLOATING LEGEND OVERLAY (TOP-LEFT) -->
+      <div class="absolute top-4 left-4 z-20 atlas-frame parchment-panel rounded-lg w-[240px] sm:w-[270px]">
+        <div class="px-3 py-1.5 border-b border-[#d5c7ae] flex items-center justify-between cursor-pointer" onclick="toggleLegend()">
+          <span class="font-serif-atlas font-bold text-xs sm:text-sm text-[#2b2520]">图例与路线筛选 · Legend</span>
+          <svg id="legend-arrow" class="w-4 h-4 text-[#6a5b49] transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div id="legend-content" class="p-2 space-y-1">
+          <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
+            <input type="checkbox" class="stage-toggle mt-0.5 accent-[#1e5688]" data-stage="1" checked onchange="setStageVisible(1, this.checked)" />
+            <div class="leading-tight">
+              <div class="flex items-center gap-1.5">
+                <span class="inline-block w-5 h-0.5 bg-[#1e5688]"></span>
+                <span class="text-xs font-semibold text-[#1e5688]">1. 前往哈兰避难</span>
+              </div>
+              <div class="text-[10px] text-[#5c5042] pl-6">Fleeing to Haran · 创 Gen 28</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
+            <input type="checkbox" class="stage-toggle mt-0.5 accent-[#2d6a4f]" data-stage="2" checked onchange="setStageVisible(2, this.checked)" />
+            <div class="leading-tight">
+              <div class="flex items-center gap-1.5">
+                <span class="inline-block w-5 h-0.5 bg-[#2d6a4f]"></span>
+                <span class="text-xs font-semibold text-[#2d6a4f]">2. 重返迦南（河东→西渡）</span>
+              </div>
+              <div class="text-[10px] text-[#5c5042] pl-6">Return to Canaan · 创 Gen 31–35</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
+            <input type="checkbox" class="stage-toggle mt-0.5 accent-[#c86d1f]" data-stage="3" checked onchange="setStageVisible(3, this.checked)" />
+            <div class="leading-tight">
+              <div class="flex items-center gap-1.5">
+                <span class="inline-block w-5 h-0.5 bg-[#c86d1f]"></span>
+                <span class="text-xs font-semibold text-[#c86d1f]">3. 下埃及歌珊地</span>
+              </div>
+              <div class="text-[10px] text-[#5c5042] pl-6">Journey to Egypt · 创 Gen 46–47</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-2 p-1 rounded hover:bg-[#efe6d2] cursor-pointer">
+            <input type="checkbox" class="stage-toggle mt-0.5 accent-[#9b2226]" data-stage="4" checked onchange="setStageVisible(4, this.checked)" />
+            <div class="leading-tight">
+              <div class="flex items-center gap-1.5">
+                <span class="inline-block w-5 border-t-2 border-dashed border-[#9b2226]"></span>
+                <span class="text-xs font-semibold text-[#9b2226]">4. 归葬希伯伦麦比拉洞</span>
+              </div>
+              <div class="text-[10px] text-[#5c5042] pl-6">Burial Return · 创 Gen 50:1–14</div>
+            </div>
+          </label>
+          <div class="pt-1 border-t border-[#e0d5c0] flex gap-1.5">
+            <button onclick="showAllStages()" class="flex-1 text-[11px] py-1 rounded bg-[#e9dec6] hover:bg-[#dfd0b1] text-[#2b2520] font-medium">全部显示</button>
+            <button onclick="focusReturnToCanaan()" class="flex-1 text-[11px] py-1 rounded bg-[#dfece4] hover:bg-[#cde2d5] text-[#22543d] font-medium">聚焦约旦河渡口</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATA SOURCE STATUS PILL (TOP-RIGHT) -->
+      <div id="data-status-pill" class="absolute top-4 right-4 z-20 bg-[#faf6ec]/92 border border-[#8b7b65] rounded-lg px-2.5 py-1.5 shadow text-[10.5px] text-[#4a3f33] flex flex-col gap-0.5 max-w-[240px]">
+        <div class="flex items-center gap-1.5">
+          <span id="dot-dem" class="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
+          <span class="font-semibold">Copernicus DEM (GLO-30)</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span id="dot-ne" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+          <span id="text-ne">Natural Earth 1:10m 加载中…</span>
+        </div>
+      </div>
+
+      <!-- COMPASS & ZOOM CONTROLS (BOTTOM-RIGHT) -->
+      <div class="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-2">
+        <div class="hidden sm:block bg-[#faf6ec]/92 rounded-full p-1 border border-[#8b7b65] shadow">
+          <svg class="w-10 h-10" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="#8b7b65" stroke-width="1.3" />
+            <polygon points="50,12 56,50 50,50" fill="#2b2520" />
+            <polygon points="50,12 44,50 50,50" fill="#e5d8bc" stroke="#2b2520" stroke-width="0.6" />
+            <polygon points="50,88 44,50 50,50" fill="#2b2520" />
+            <polygon points="50,88 56,50 50,50" fill="#e5d8bc" stroke="#2b2520" stroke-width="0.6" />
+            <polygon points="88,50 50,56 50,50" fill="#2b2520" />
+            <polygon points="88,50 50,44 50,50" fill="#e5d8bc" stroke="#2b2520" stroke-width="0.6" />
+            <polygon points="12,50 50,44 50,50" fill="#2b2520" />
+            <polygon points="12,50 50,56 50,50" fill="#e5d8bc" stroke="#2b2520" stroke-width="0.6" />
+            <circle cx="50" cy="50" r="3" fill="#faf6ec" stroke="#2b2520" stroke-width="1" />
+            <text x="50" y="9" text-anchor="middle" font-family="EB Garamond, serif" font-weight="700" font-size="10" fill="#2b2520">N</text>
+          </svg>
+        </div>
+
+        <div class="flex flex-col bg-[#faf6ec] rounded-lg border border-[#8b7b65] shadow overflow-hidden">
+          <button onclick="mapZoom(1)" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520] border-b border-[#d5c7ae] font-bold text-base" title="放大">+</button>
+          <button onclick="mapZoom(-1)" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520] border-b border-[#d5c7ae] font-bold text-base" title="缩小">−</button>
+          <button onclick="applyPreset('full')" class="w-8 h-8 flex items-center justify-center hover:bg-[#ece1cb] text-[#2b2520]" title="重置全景">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: BILINGUAL BIBLE STUDY SIDEBAR (LSB + 和合本现代标点) -->
+    <aside id="study-sidebar" class="parchment-panel w-full lg:w-[385px] xl:w-[425px] h-full border-l-2 border-[#8b7b65] flex flex-col shrink-0 z-20">
+      <!-- Tour Navigation -->
+      <div class="px-3 py-2 bg-[#efe5cf] border-b border-[#cbbba0] flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <button onclick="stepTour(-1)" class="px-2 py-1 rounded bg-[#faf6ec] hover:bg-[#e5d8bc] border border-[#b4a186] text-xs font-medium">◀ 上一站</button>
+          <button id="btn-autoplay" onclick="toggleAutoPlay()" class="px-2.5 py-1 rounded bg-[#2b2520] hover:bg-[#413830] text-[#faf6ec] text-xs font-medium">▶ 自动导览</button>
+          <button onclick="stepTour(1)" class="px-2 py-1 rounded bg-[#faf6ec] hover:bg-[#e5d8bc] border border-[#b4a186] text-xs font-medium">下一站 ▶</button>
+        </div>
+        <span id="step-counter" class="font-serif-atlas font-bold text-xs text-[#5c4a35] bg-[#faf6ec] px-2 py-0.5 rounded border border-[#cbbba0]">1 / 14</span>
+      </div>
+
+      <!-- Active Milestone Card (LSB + 和合本现代标点) -->
+      <div id="detail-panel" class="p-3.5 border-b-2 border-[#cbbba0] bg-[#fcf9f2] shrink-0 max-h-[52%] overflow-y-auto atlas-scroll"></div>
+
+      <!-- 14-Step Chronological Timeline -->
+      <div class="px-3 py-1.5 bg-[#f3ebd8] border-b border-[#d9cbb2] flex items-center justify-between shrink-0">
+        <span class="font-serif-atlas font-bold text-xs text-[#5c4a35]">生平编年时间轴 · 14 Milestones</span>
+        <span class="text-[10px] text-[#7a6955]">点击自动飞抵定位</span>
+      </div>
+      <div id="timeline-container" class="flex-1 overflow-y-auto atlas-scroll p-2 space-y-1.5"></div>
+    </aside>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =========================================================================
+         3. APPLICATION STATE & LEAFLET + COPERNICUS DEM (GLO-30) ENGINE
+         ========================================================================= */
+      const state = {
+        activeStep: 1,
+        visibleStages: new Set([1, 2, 3, 4]),
+        reliefEnhanced: false,
+        autoTimer: null,
+        sidebarVisible: true,
+        legendOpen: true
+      };
+
+      const markerMap = new Map();
+      const stageLayerGroups = { 1: null, 2: null, 3: null, 4: null };
+      let activeRouteLayer = null;
+      let jordanCalloutMarker = null;
+      let demLayer = null;
+      let neLayers = { ocean: null, coastline: null, lakes: null, rivers: null };
+      let neCanvasRenderer = null;
+      let map = null;
+
+      /* Register all global UI button handlers up front */
+      window._selectStep = (s) => { stopAutoPlay(); selectStep(s, true); };
+
+      window.applyPreset = (name) => {
+        stopAutoPlay();
+        document.querySelectorAll('.preset-btn').forEach(b => {
+          b.classList.remove('bg-[#2b2520]', 'text-[#faf6ec]');
+          b.classList.add('text-[#3b3228]');
+        });
+        const btn = document.getElementById(`btn-preset-${name}`);
+        if (btn) {
+          btn.classList.add('bg-[#2b2520]', 'text-[#faf6ec]');
+          btn.classList.remove('text-[#3b3228]');
+        }
+        if (!map) return;
+        if (name === 'full') {
+          map.flyTo([33.3, 35.3], 6, { duration: 0.85 });
+        } else if (name === 'canaan') {
+          map.flyTo([32.02, 35.50], 9, { duration: 0.85 });
+        } else if (name === 'egypt') {
+          map.flyTo([31.10, 33.45], 7, { duration: 0.85 });
+        }
+      };
+
+      window.toggle3DTerrain = () => {
+        state.reliefEnhanced = !state.reliefEnhanced;
+        const btn = document.getElementById('btn-3d-toggle');
+        if (state.reliefEnhanced) {
+          if (btn) {
+            btn.classList.add('bg-[#2b2520]', 'text-[#faf6ec]');
+            btn.classList.remove('bg-[#faf6ec]', 'text-[#2b2520]');
+            btn.textContent = '标准地形';
+          }
+        } else {
+          if (btn) {
+            btn.classList.remove('bg-[#2b2520]', 'text-[#faf6ec]');
+            btn.classList.add('bg-[#faf6ec]', 'text-[#2b2520]');
+            btn.textContent = '立体增强';
+          }
+        }
+        if (demLayer) demLayer.redraw();
+      };
+
+      window.mapZoom = (delta) => {
+        stopAutoPlay();
+        if (!map) return;
+        map.setZoom(map.getZoom() + delta);
+      };
+
+      window.setStageVisible = (stageId, checked) => {
+        if (checked) state.visibleStages.add(stageId);
+        else state.visibleStages.delete(stageId);
+        updateStageVisibility();
+      };
+
+      window.showAllStages = () => {
+        state.visibleStages = new Set([1, 2, 3, 4]);
+        document.querySelectorAll('.stage-toggle').forEach(cb => { cb.checked = true; });
+        updateStageVisibility();
+      };
+
+      window.focusReturnToCanaan = () => {
+        state.visibleStages = new Set([2]);
+        document.querySelectorAll('.stage-toggle').forEach(cb => {
+          cb.checked = Number(cb.dataset.stage) === 2;
+        });
+        updateStageVisibility();
+        window.applyPreset('canaan');
+      };
+
+      window.stepTour = (delta) => {
+        stopAutoPlay();
+        let next = state.activeStep + delta;
+        if (next < 1) next = MILESTONES.length;
+        if (next > MILESTONES.length) next = 1;
+        selectStep(next, true);
+      };
+
+      window.toggleAutoPlay = () => {
+        const btn = document.getElementById('btn-autoplay');
+        if (state.autoTimer) {
+          stopAutoPlay();
+          return;
+        }
+        if (btn) btn.textContent = '⏸ 暂停导览';
+        selectStep(state.activeStep, true);
+        state.autoTimer = setInterval(() => {
+          const next = state.activeStep >= MILESTONES.length ? 1 : state.activeStep + 1;
+          selectStep(next, true);
+        }, 4200);
+      };
+
+      window.toggleLegend = () => {
+        state.legendOpen = !state.legendOpen;
+        document.getElementById('legend-content').style.display = state.legendOpen ? '' : 'none';
+        document.getElementById('legend-arrow').style.transform = state.legendOpen ? '' : 'rotate(-90deg)';
+      };
+
+      window.toggleSidebar = () => {
+        state.sidebarVisible = !state.sidebarVisible;
+        const sb = document.getElementById('study-sidebar');
+        const mp = document.getElementById('map-pane');
+        const lbl = document.getElementById('sidebar-toggle-text');
+        if (state.sidebarVisible) {
+          sb.classList.remove('hidden', 'hidden-sidebar');
+          mp.classList.remove('expanded-map');
+          if (lbl) lbl.textContent = '隐藏研经栏';
+        } else {
+          sb.classList.add('hidden', 'hidden-sidebar');
+          mp.classList.add('expanded-map');
+          if (lbl) lbl.textContent = '显示研经栏';
+        }
+        setTimeout(() => { if (map) map.invalidateSize(); }, 120);
+      };
+
+      /* Hypsometric Color-Relief Ramp (ESV Study Bible / National Geographic palette) */
+      const COLOR_STOPS = [
+        [-450, 204, 214, 190],
+        [-150, 220, 226, 202],
+        [0,    240, 231, 208],
+        [220,  242, 232, 207],
+        [550,  229, 211, 174],
+        [950,  213, 187, 143],
+        [1500, 195, 162, 119],
+        [2400, 179, 144, 106],
+        [3200, 227, 217, 204]
+      ];
+
+      function getHypsometricColor(elev) {
+        if (elev <= COLOR_STOPS[0][0]) return [COLOR_STOPS[0][1], COLOR_STOPS[0][2], COLOR_STOPS[0][3]];
+        const last = COLOR_STOPS[COLOR_STOPS.length - 1];
+        if (elev >= last[0]) return [last[1], last[2], last[3]];
+        for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
+          const a = COLOR_STOPS[i];
+          const b = COLOR_STOPS[i + 1];
+          if (elev >= a[0] && elev <= b[0]) {
+            const t = (elev - a[0]) / (b[0] - a[0]);
+            return [
+              a[1] + (b[1] - a[1]) * t,
+              a[2] + (b[2] - a[2]) * t,
+              a[3] + (b[3] - a[3]) * t
+            ];
+          }
+        }
+        return [240, 231, 208];
+      }
+
+      /* Custom Leaflet GridLayer: Real-time Copernicus DEM (GLO-30) Terrarium Color-Relief + NW Hillshade */
+      function createCopernicusDEMLayer() {
+        const CopernicusLayer = L.GridLayer.extend({
+          createTile: function (coords, done) {
+            const tile = document.createElement('canvas');
+            const size = 256;
+            tile.width = size;
+            tile.height = size;
+            const ctx = tile.getContext('2d', { willReadFrequently: true });
+
+            // Base parchment fill while tile loads
+            ctx.fillStyle = '#f0e7d0';
+            ctx.fillRect(0, 0, size, size);
+
+            const urls = [
+              `https://tiles.mapterhorn.com/${coords.z}/${coords.x}/${coords.y}.webp`,
+              `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${coords.z}/${coords.x}/${coords.y}.png`
+            ];
+
+            const renderFromImage = (img) => {
+              try {
+                const off = document.createElement('canvas');
+                off.width = size;
+                off.height = size;
+                const octx = off.getContext('2d', { willReadFrequently: true });
+                octx.drawImage(img, 0, 0, size, size);
+                const src = octx.getImageData(0, 0, size, size).data;
+
+                // Decode Terrarium RGB -> meters
+                const elev = new Float32Array(size * size);
+                for (let i = 0, p = 0; i < elev.length; i++, p += 4) {
+                  elev[i] = (src[p] * 256 + src[p + 1] + src[p + 2] / 256) - 32768;
+                }
+
+                // Approximate ground resolution in meters/pixel at tile center latitude
+                const n = Math.PI - (2 * Math.PI * (coords.y + 0.5)) / Math.pow(2, coords.z);
+                const latRad = Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+                const metersPerPx = (156543.03392 * Math.cos(latRad)) / Math.pow(2, coords.z);
+                const zFactor = (state.reliefEnhanced ? 4.4 : 2.3) / Math.max(metersPerPx, 1);
+
+                // NW illumination (azimuth 315 deg, altitude 45 deg)
+                const altRad = 45 * Math.PI / 180;
+                const azRad = 315 * Math.PI / 180;
+                const sinAlt = Math.sin(altRad);
+                const cosAlt = Math.cos(altRad);
+                const shadeStrength = state.reliefEnhanced ? 0.58 : 0.36;
+
+                const outImg = ctx.createImageData(size, size);
+                const out = outImg.data;
+
+                for (let y = 0; y < size; y++) {
+                  const ym = y > 0 ? y - 1 : 0;
+                  const yp = y < size - 1 ? y + 1 : size - 1;
+                  for (let x = 0; x < size; x++) {
+                    const xm = x > 0 ? x - 1 : 0;
+                    const xp = x < size - 1 ? x + 1 : size - 1;
+                    const idx = y * size + x;
+                    const h = elev[idx];
+
+                    const dzdx = ((elev[y * size + xp] - elev[y * size + xm]) * 0.5) * zFactor;
+                    const dzdy = ((elev[yp * size + x] - elev[ym * size + x]) * 0.5) * zFactor;
+
+                    const slope = Math.atan(Math.sqrt(dzdx * dzdx + dzdy * dzdy));
+                    const aspect = Math.atan2(dzdy, -dzdx);
+                    let shade = sinAlt * Math.cos(slope) + cosAlt * Math.sin(slope) * Math.cos(azRad - aspect);
+                    shade = Math.max(0, Math.min(1, shade));
+
+                    // Centered shading delta (-1 shadow to +1 highlight)
+                    const delta = (shade - 0.707) * 1.45;
+                    const [r0, g0, b0] = getHypsometricColor(h);
+
+                    let r, g, b;
+                    if (delta < 0) {
+                      const k = Math.min(1, -delta * shadeStrength);
+                      r = r0 * (1 - k) + 92 * k;
+                      g = g0 * (1 - k) + 75 * k;
+                      b = b0 * (1 - k) + 55 * k;
+                    } else {
+                      const k = Math.min(1, delta * shadeStrength * 0.65);
+                      r = r0 * (1 - k) + 255 * k;
+                      g = g0 * (1 - k) + 250 * k;
+                      b = b0 * (1 - k) + 240 * k;
+                    }
+
+                    const p = idx * 4;
+                    out[p] = r;
+                    out[p + 1] = g;
+                    out[p + 2] = b;
+                    out[p + 3] = 255;
+                  }
+                }
+                ctx.putImageData(outImg, 0, 0);
+              } catch (e) {
+                // Keep parchment base if canvas read fails
+              }
+              done(null, tile);
+            };
+
+            const loadUrl = (urlIdx) => {
+              if (urlIdx >= urls.length) {
+                done(null, tile);
+                return;
+              }
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => renderFromImage(img);
+              img.onerror = () => loadUrl(urlIdx + 1);
+              img.src = urls[urlIdx];
+            };
+
+            loadUrl(0);
+            return tile;
+          }
+        });
+        return new CopernicusLayer({ maxNativeZoom: 12, maxZoom: 13, tileSize: 256 });
+      }
+
+      /* Compute directional arrowhead markers along interpolated route LineStrings */
+      function buildStageArrowMarkers(stageId) {
+        const st = STAGES[stageId];
+        const arrows = [];
+        const feats = ROUTES_GEOJSON.features.filter(f => f.properties.stage === stageId);
+        feats.forEach(feat => {
+          const coords = feat.geometry.coordinates;
+          if (coords.length < 3) return;
+          // Place arrowheads cleanly at ~38% and ~76% along longer segments, or ~55% on short ones
+          const totalDist = Math.hypot(
+            coords[coords.length - 1][0] - coords[0][0],
+            coords[coords.length - 1][1] - coords[0][1]
+          );
+          const fracs = totalDist > 1.2 ? [0.28, 0.56, 0.82] : [0.55];
+          fracs.forEach(frac => {
+            const idx = Math.max(1, Math.min(coords.length - 2, Math.floor(frac * (coords.length - 1))));
+            const prev = coords[idx - 1];
+            const next = coords[idx + 1];
+            const dLon = (next[0] - prev[0]) * Math.cos((coords[idx][1] * Math.PI) / 180);
+            const dLat = next[1] - prev[1];
+            // CSS rotation in degrees where 0deg points East (+X)
+            const angleDeg = -Math.atan2(dLat, dLon) * (180 / Math.PI);
+
+            const icon = L.divIcon({
+              className: 'route-arrow-icon',
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+              html: `<svg width="16" height="16" viewBox="-10 -10 20 20" style="transform:rotate(${angleDeg.toFixed(1)}deg);display:block;overflow:visible;">
+                <polygon points="7,0 -5,-5.5 -2.5,0 -5,5.5" fill="${st.color}" stroke="#faf6ec" stroke-width="1.6" stroke-linejoin="round" />
+              </svg>`
+            });
+            arrows.push(L.marker([coords[idx][1], coords[idx][0]], {
+              icon,
+              interactive: false,
+              pane: 'arrowsPane'
+            }));
+          });
+        });
+        return arrows;
+      }
+
+      /* Build Leaflet Physical Atlas Map with Copernicus DEM (GLO-30) + Natural Earth 1:10m */
+      function initMap() {
+        if (typeof L === 'undefined') {
+          const dotDem = document.getElementById('dot-dem');
+          const txtNe = document.getElementById('text-ne');
+          if (dotDem) dotDem.className = 'w-2 h-2 rounded-full bg-red-600 shrink-0';
+          if (txtNe) txtNe.textContent = 'Leaflet 地图库加载失败，请刷新重试';
+          selectStep(1, false);
+          return;
+        }
+
+        try {
+          map = L.map('map-container', {
+            center: [33.3, 35.3],
+            zoom: 6,
+            minZoom: 5,
+            maxZoom: 12,
+            maxBounds: [[26.5, 26.5], [39.8, 43.5]],
+            maxBoundsViscosity: 0.85,
+            zoomControl: false,
+            attributionControl: false
+          });
+
+          // Custom cartographic panes for strict z-ordering
+          map.createPane('neWaterPane');
+          map.getPane('neWaterPane').style.zIndex = 350;
+          map.getPane('neWaterPane').style.pointerEvents = 'none';
+
+          map.createPane('routesPane');
+          map.getPane('routesPane').style.zIndex = 450;
+          map.getPane('routesPane').style.pointerEvents = 'none';
+
+          map.createPane('arrowsPane');
+          map.getPane('arrowsPane').style.zIndex = 470;
+          map.getPane('arrowsPane').style.pointerEvents = 'none';
+
+          // 1. Copernicus DEM (GLO-30) Hypsometric Color-Relief & Hillshade Layer
+          demLayer = createCopernicusDEMLayer().addTo(map);
+
+          // 2. Canvas Renderer for Natural Earth 1:10m Hydrography & Coastline
+          neCanvasRenderer = L.canvas({ pane: 'neWaterPane', padding: 0.5 });
+
+          neLayers.ocean = L.geoJSON(FALLBACK_OCEAN_GEOJSON, {
+            renderer: neCanvasRenderer,
+            pane: 'neWaterPane',
+            interactive: false,
+            style: { fillColor: '#bed7e5', fillOpacity: 1, stroke: false }
+          }).addTo(map);
+
+          neLayers.coastline = L.geoJSON(null, {
+            renderer: neCanvasRenderer,
+            pane: 'neWaterPane',
+            interactive: false,
+            style: { color: '#5e8397', weight: 1.3, opacity: 0.9 }
+          }).addTo(map);
+
+          neLayers.lakes = L.geoJSON(null, {
+            renderer: neCanvasRenderer,
+            pane: 'neWaterPane',
+            interactive: false,
+            style: { fillColor: '#a8cde0', fillOpacity: 1, color: '#4d7d96', weight: 1 }
+          }).addTo(map);
+
+          neLayers.rivers = L.geoJSON(null, {
+            renderer: neCanvasRenderer,
+            pane: 'neWaterPane',
+            interactive: false,
+            style: { color: '#4d7d96', weight: 1.8, opacity: 0.92, lineCap: 'round', lineJoin: 'round' }
+          }).addTo(map);
+
+          // Supplemental Biblical Jabbok River
+          L.geoJSON(JABBOK_GEOJSON, {
+            renderer: neCanvasRenderer,
+            pane: 'neWaterPane',
+            interactive: false,
+            style: { color: '#4d7d96', weight: 1.6, opacity: 0.95, lineCap: 'round' }
+          }).addTo(map);
+
+          // 3. Stage 1–4 Route Halos, Main Lines & Directional Arrowheads
+          [1, 2, 3, 4].forEach(stId => {
+            const st = STAGES[stId];
+            const group = L.layerGroup().addTo(map);
+            const stageGeo = {
+              type: 'FeatureCollection',
+              features: ROUTES_GEOJSON.features.filter(f => f.properties.stage === stId)
+            };
+
+            L.geoJSON(stageGeo, {
+              pane: 'routesPane',
+              interactive: false,
+              style: { color: '#faf6ec', weight: 5.5, opacity: 0.82, lineCap: 'round', lineJoin: 'round' }
+            }).addTo(group);
+
+            L.geoJSON(stageGeo, {
+              pane: 'routesPane',
+              interactive: false,
+              style: {
+                color: st.color,
+                weight: 3.1,
+                opacity: 0.95,
+                dashArray: st.dashed ? '7 5' : null,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }
+            }).addTo(group);
+
+            buildStageArrowMarkers(stId).forEach(m => m.addTo(group));
+            stageLayerGroups[stId] = group;
+          });
+
+          // Active highlighted route segment layer
+          activeRouteLayer = L.layerGroup().addTo(map);
+
+          // Built-in Metric Scale Control
+          L.control.scale({ position: 'bottomleft', maxWidth: 130, imperial: false }).addTo(map);
+
+          // 4. Add Ancient Geography Labels & 14 Milestone Pins
+          addAncientGeoLabels();
+          addSiteMarkers();
+
+          // 5. Stream Real Natural Earth 1:10m Ocean, Coastline, Lakes & Rivers
+          loadNaturalEarth10m();
+
+          // 6. Initialize Step 1 in Sidebar
+          selectStep(1, false);
+
+          map.on('zoomend', () => {
+            const z = map.getZoom();
+            const container = document.getElementById('map-container');
+            if (z >= 8) container.classList.remove('compact-zoom');
+            else container.classList.add('compact-zoom');
+
+            if (jordanCalloutMarker) {
+              const el = jordanCalloutMarker.getElement();
+              if (el) {
+                const show = z >= 8 && state.visibleStages.has(2);
+                el.style.display = show ? 'block' : 'none';
+              }
+            }
+          });
+        } catch (err) {
+          console.error('Atlas initialization error:', err);
+          const dotDem = document.getElementById('dot-dem');
+          const txtNe = document.getElementById('text-ne');
+          if (dotDem) dotDem.className = 'w-2 h-2 rounded-full bg-red-600 shrink-0';
+          if (txtNe) txtNe.textContent = '地图初始化失败';
+          selectStep(1, false);
+        }
+      }
+
+      /* =========================================================================
+         4. NATURAL EARTH 1:10M HYDROGRAPHY & ANCIENT GEOGRAPHY MARKERS
+         ========================================================================= */
+      const STAGES = {
+        1: { id: 1, color: '#1e5688', bg: '#e5eff7', nameZh: '一、前往哈兰避难', nameEn: 'Fleeing to Haran', ref: '创 Gen 28', dashed: false },
+        2: { id: 2, color: '#2d6a4f', bg: '#e5f2ec', nameZh: '二、重返迦南', nameEn: 'Return to Canaan', ref: '创 Gen 31–35', dashed: false },
+        3: { id: 3, color: '#c86d1f', bg: '#f9ecdf', nameZh: '三、下埃及歌珊地', nameEn: 'Journey to Egypt', ref: '创 Gen 46–47', dashed: false },
+        4: { id: 4, color: '#9b2226', bg: '#f7e5e6', nameZh: '四、归葬迦南', nameEn: 'Burial Return', ref: '创 Gen 50:1–14', dashed: true }
+      };
+
+      const MILESTONES = [
+        {
+          step: 1, siteId: 'beersheba', stage: 1,
+          nameZh: '别是巴', nameEn: 'Beersheba',
+          subtitleZh: '成长、得祝福与起程避难',
+          lon: 34.791, lat: 31.245, zoom: 7.4,
+          geoBadge: '迦南南地 · 约旦河西',
+          ref: '创世记 Gen 25:26–34; 27; 28:10',
+          summaryZh: '雅各成长于南地别是巴一带，先后得着长子名分与父亲以撒的祝福。因哥哥以扫怀恨追杀，雅各听从父母之命，离开别是巴起程前往巴旦·亚兰的哈兰。',
+          summaryEn: 'Raised in the Negev around Beersheba, Jacob obtains the birthright and Isaac’s blessing, then flees Esau’s wrath toward Haran in Paddan-aram.',
+          quoteCuv: '“雅各出了别是巴，向哈兰走去。”（创世记 28:10，和合本现代标点）',
+          quoteLsb: '“Then Jacob departed from Beersheba and went toward Haran.” (Genesis 28:10, LSB)'
+        },
+        {
+          step: 2, siteId: 'bethel', stage: 1,
+          nameZh: '伯特利（初访）', nameEn: 'Bethel (1st Visit)',
+          subtitleZh: '梦见天梯、立石为柱',
+          lon: 35.222, lat: 31.930, zoom: 8.5,
+          geoBadge: '约旦河西 · 中部山地',
+          ref: '创世记 Gen 28:10–22',
+          summaryZh: '雅各沿中央山脊北行，在路斯以石为枕露宿，梦见连接天地的梯子与神的使者。耶和华亲自重申亚伯拉罕之约，应许同在并领他归回此地；雅各立柱浇油，起名“伯特利”（神的殿）。',
+          summaryEn: 'At Luz, Jacob dreams of a ladder reaching heaven. Yahweh reaffirms the Abrahamic covenant; Jacob anoints the stone pillar and names the place Bethel.',
+          quoteCuv: '“我也与你同在。你无论往哪里去，我必保佑你，领你归回这地，总不离弃你，直到我成全了向你所应许的。”（创世记 28:15，和合本现代标点）',
+          quoteLsb: '“Behold, I am with you and will keep you wherever you go. And I will bring you back to this land; for I will not forsake you until I have done what I have promised you.” (Genesis 28:15, LSB)'
+        },
+        {
+          step: 3, siteId: 'haran', stage: 1,
+          nameZh: '哈兰（巴旦·亚兰）', nameEn: 'Haran (Paddan-aram)',
+          subtitleZh: '服事拉班二十年、娶妻生子',
+          lon: 39.031, lat: 36.865, zoom: 7.0,
+          geoBadge: '幼发拉底河上游东北 · 美索不达米亚',
+          ref: '创世记 Gen 29–31',
+          summaryZh: '雅各抵达母舅拉班所在的哈兰，在此服事二十年：为娶拉结与利亚服事十四年，为羊群服事六年。在此生下十一个儿子（便雅悯除外）与女儿底拿，神大大赐福他的家业。',
+          summaryEn: 'In Haran, Jacob serves Laban for 20 years, marries Leah and Rachel, fathers eleven sons and Dinah, and prospers before Yahweh calls him home.',
+          quoteCuv: '“耶和华对雅各说：‘你要回你祖、你父之地，到你亲族那里去，我必与你同在。’”（创世记 31:3，和合本现代标点）',
+          quoteLsb: '“Then Yahweh said to Jacob, ‘Return to the land of your fathers and to your kin, and I will be with you.’” (Genesis 31:3, LSB)'
+        },
+        {
+          step: 4, siteId: 'gilead', stage: 2,
+          nameZh: '基列山', nameEn: 'Mount Gilead',
+          subtitleZh: '与拉班立石为证、和平分手',
+          lon: 35.890, lat: 32.490, zoom: 8.6,
+          geoBadge: '约旦河东岸 · 基列山地',
+          ref: '创世记 Gen 31:21–55',
+          summaryZh: '雅各携家眷渡过幼发拉底河，沿约旦河东岸南下至基列山。拉班追上雅各，经神夜间警戒后，二人在米斯巴堆石为证、立约和平分手。',
+          summaryEn: 'Traveling south along the east side of the Jordan, Jacob is overtaken by Laban at Mount Gilead; they set up a stone heap as a covenant witness.',
+          quoteCuv: '“又叫米斯巴，意思说：‘我们彼此离别以后，愿耶和华在你我中间鉴察。’”（创世记 31:49，和合本现代标点）',
+          quoteLsb: '“and Mizpah, for he said, ‘May Yahweh watch between you and me when we are absent one from the other.’” (Genesis 31:49, LSB)'
+        },
+        {
+          step: 5, siteId: 'mahanaim', stage: 2,
+          nameZh: '玛哈念', nameEn: 'Mahanaim',
+          subtitleZh: '遇见神的使者（二队军兵）',
+          lon: 35.815, lat: 32.310, zoom: 9.2,
+          geoBadge: '约旦河东岸 · 雅博河北',
+          ref: '创世记 Gen 32:1–2',
+          summaryZh: '继续沿约旦河东岸南行时，神的使者在此遇见雅各。雅各见这景象便说“这是神的军兵”，于是给那地方起名叫“玛哈念”（意为“二队军兵”），随后差人往西珥见以扫。',
+          summaryEn: 'Angels of God meet Jacob east of the Jordan; he names the place Mahanaim (“Two Camps”) before sending messengers south to Esau.',
+          quoteCuv: '“雅各仍旧行路，神的使者遇见他。雅各看见他们就说：‘这是神的军兵。’于是给那地方起名叫玛哈念。”（创世记 32:1–2，和合本现代标点）',
+          quoteLsb: '“Now as Jacob went on his way, the angels of God met him. And Jacob said when he saw them, ‘This is God’s camp.’ So he named that place Mahanaim.” (Genesis 32:1–2, LSB)'
+        },
+        {
+          step: 6, siteId: 'penuel', stage: 2,
+          nameZh: '毗努伊勒 / 雅博渡口', nameEn: 'Penuel / Jabbok Ford',
+          subtitleZh: '与神摔跤，蒙赐新名“以色列”',
+          lon: 35.720, lat: 32.185, zoom: 9.5,
+          geoBadge: '约旦河东岸 · 雅博河畔',
+          ref: '创世记 Gen 32:22–32',
+          summaryZh: '雅各夜间送家眷过雅博渡口，独自留下与神摔跤直到黎明。大腿窝虽被摸瘸，他仍紧抓祝福不放，蒙神改名为“以色列”（与神与人较力都得了胜），遂称此地为“毗努伊勒”（神之面）。',
+          summaryEn: 'At the ford of the Jabbok east of the Jordan, Jacob wrestles with God until daybreak and receives the new name Israel.',
+          quoteCuv: '“那人说：‘你的名不要再叫雅各，要叫以色列；因为你与神与人较力，都得了胜。’”（创世记 32:28，和合本现代标点）',
+          quoteLsb: '“And He said, ‘Your name shall no longer be Jacob, but Israel; for you have striven with God and with men and have prevailed.’” (Genesis 32:28, LSB)'
+        },
+        {
+          step: 7, siteId: 'succoth', stage: 2,
+          nameZh: '疏割', nameEn: 'Succoth',
+          subtitleZh: '与以扫和好，在河东搭棚暂居',
+          lon: 35.622, lat: 32.198, zoom: 9.5,
+          geoBadge: '约旦河东岸 · 近约旦河谷',
+          ref: '创世记 Gen 33:1–17',
+          summaryZh: '雅各与率四百人迎面而来的以扫相见，兄弟抱颈痛哭、彻底和好。以扫返回西珥后，雅各来到约旦河东谷地的疏割，为自己盖造房屋，又为牲畜搭棚。',
+          summaryEn: 'After his emotional reconciliation with Esau, Jacob moves down to Succoth in the eastern Jordan Valley, building a house and booths for his livestock.',
+          quoteCuv: '“雅各就往疏割去，在那里为自己盖造房屋，又为牲畜搭棚；因此那地方名叫疏割。”（创世记 33:17，和合本现代标点）',
+          quoteLsb: '“And Jacob journeyed to Succoth and built for himself a house and made booths for his livestock; therefore the place is named Succoth.” (Genesis 33:17, LSB)'
+        },
+        {
+          step: 8, siteId: 'shechem', stage: 2,
+          nameZh: '示剑', nameEn: 'Shechem',
+          subtitleZh: '西渡约旦河入迦南、买地筑坛',
+          lon: 35.282, lat: 32.214, zoom: 9.0,
+          geoBadge: '西渡约旦河 · 约旦河西山地',
+          ref: '创世记 Gen 33:18–34:31',
+          summaryZh: '雅各从疏割向西渡过约旦河，平安抵达迦南地的示剑城，买下田地并筑坛起名“伊利·伊罗伊·以色列”。但随后发生女儿底拿受辱与西缅、利未屠城事件，雅各全家必须迁离。',
+          summaryEn: 'Crossing westward over the Jordan River into Canaan, Jacob arrives safely at Shechem, buys land, and builds an altar; later the tragedy of Dinah unfolds here.',
+          quoteCuv: '“雅各从巴旦·亚兰回来的时候，平平安安地到了迦南地的示剑城，在城东支搭帐棚。”（创世记 33:18，和合本现代标点）',
+          quoteLsb: '“Now Jacob came safely to the city of Shechem, which is in the land of Canaan, when he came from Paddan-aram, and he camped before the city.” (Genesis 33:18, LSB)'
+        },
+        {
+          step: 9, siteId: 'bethel', stage: 2,
+          nameZh: '伯特利（重返）', nameEn: 'Bethel (Return)',
+          subtitleZh: '除掉外邦神像、重申以色列之名',
+          lon: 35.222, lat: 31.930, zoom: 9.0,
+          geoBadge: '约旦河西 · 示剑之南',
+          ref: '创世记 Gen 35:1–15',
+          summaryZh: '神吩咐雅各上伯特利还愿。雅各命全家除掉外邦神像、自洁换衣，回到当年梦见天梯之处筑坛献祭。神再次向他显现，坚立“以色列”的新名与应许。',
+          summaryEn: 'Obeying God’s command, Jacob purifies his household of foreign gods and returns south to Bethel to build an altar, where God reaffirms his name Israel.',
+          quoteCuv: '“神又对他说：‘你的名原是雅各，从今以后不要再叫雅各，要叫以色列。’这样，他就改名叫以色列。”（创世记 35:10，和合本现代标点）',
+          quoteLsb: '“And God said to him, ‘Your name is Jacob; you shall no longer be called Jacob, but Israel shall be your name.’ Thus He called him Israel.” (Genesis 35:10, LSB)'
+        },
+        {
+          step: 10, siteId: 'bethlehem', stage: 2,
+          nameZh: '伯利恒（以法他）', nameEn: 'Bethlehem (Ephrath)',
+          subtitleZh: '便雅悯出生、拉结难产去世',
+          lon: 35.202, lat: 31.705, zoom: 9.0,
+          geoBadge: '约旦河西 · 伯特利之南',
+          ref: '创世记 Gen 35:16–20',
+          summaryZh: '从伯特利继续沿河西山地南行，离以法他（伯利恒）还有一段路程时，爱妻拉结难产去世，生下幼子便雅悯。雅各将拉结葬在以法他的路旁，并在坟上立碑纪念。',
+          summaryEn: 'Continuing south from Bethel along the central ridge west of the Dead Sea, Rachel dies giving birth to Benjamin and is buried on the way to Ephrath (Bethlehem).',
+          quoteCuv: '“拉结死了，葬在以法他的路旁；以法他就是伯利恒。”（创世记 35:19，和合本现代标点）',
+          quoteLsb: '“So Rachel died and was buried on the way to Ephrath (that is, Bethlehem).” (Genesis 35:19, LSB)'
+        },
+        {
+          step: 11, siteId: 'hebron', stage: 2,
+          nameZh: '希伯伦（幔利）', nameEn: 'Hebron (Mamre)',
+          subtitleZh: '与父以撒重逢、定居与哀哭约瑟',
+          lon: 35.105, lat: 31.525, zoom: 8.8,
+          geoBadge: '约旦河西 · 犹大山地',
+          ref: '创世记 Gen 35:27–29; 37:14',
+          summaryZh: '雅各南抵希伯伦幔利，与年迈的父亲以撒重逢；以撒享年180岁寿终，由以扫和雅各共同安葬于麦比拉洞。此后雅各定居希伯伦谷，并在此经历约瑟被兄长出卖的哀痛。',
+          summaryEn: 'Jacob arrives at Hebron to reunite with Isaac, whom he and Esau bury in Machpelah. Jacob settles here and later mourns the presumed death of Joseph.',
+          quoteCuv: '“雅各来到他父亲以撒那里，到了基列·亚巴的幔利，乃是亚伯拉罕和以撒寄居的地方；基列·亚巴就是希伯伦。”（创世记 35:27，和合本现代标点）',
+          quoteLsb: '“Then Jacob came to his father Isaac at Mamre of Kiriath-arba (that is, Hebron), where Abraham and Isaac had sojourned.” (Genesis 35:27, LSB)'
+        },
+        {
+          step: 12, siteId: 'beersheba', stage: 3,
+          nameZh: '别是巴（下埃及前）', nameEn: 'Beersheba (En Route)',
+          subtitleZh: '献祭求问、得神异象应许',
+          lon: 34.791, lat: 31.245, zoom: 7.4,
+          geoBadge: '迦南南地 · 赴埃及前最后一站',
+          ref: '创世记 Gen 46:1–5',
+          summaryZh: '迦南地大饥荒，雅各得知约瑟仍在埃及作宰相，便起程南下。在离开迦南前的最后一站别是巴，他向神献祭，神在夜间异象中安慰他：“你下埃及去不要害怕，我必使你在那里成为大族。”',
+          summaryEn: 'Stopping at Beersheba during the famine, Jacob offers sacrifices and receives God’s nighttime assurance to go down to Egypt without fear.',
+          quoteCuv: '“神说：‘我是神，就是你父亲的神。你下埃及去不要害怕，因为我必使你在那里成为大族。’”（创世记 46:3，和合本现代标点）',
+          quoteLsb: '“And He said, ‘I am God, the God of your father; do not be afraid to go down to Egypt, for I will make you a great nation there.’” (Genesis 46:3, LSB)'
+        },
+        {
+          step: 13, siteId: 'goshen', stage: 3,
+          nameZh: '歌珊地（埃及）', nameEn: 'Goshen, Egypt',
+          subtitleZh: '父子重逢、祝福众子、147岁逝世',
+          lon: 31.680, lat: 30.780, zoom: 7.0,
+          geoBadge: '埃及 · 尼罗河三角洲东缘',
+          ref: '创世记 Gen 46:28–49:33',
+          summaryZh: '雅各率领全家七十口沿西奈北岸沿海大道进入埃及歌珊地，与分别二十二年的爱子约瑟相拥而泣，并蒙法老赐予肥沃牧场。雅各在埃及安度十七年，临终前为十二个儿子预言祝福，享年147岁。',
+          summaryEn: 'Jacob and his household of 70 settle in fertile Goshen in the eastern Nile Delta, reuniting with Joseph. After 17 years, Jacob blesses his twelve sons and dies at 147.',
+          quoteCuv: '“以色列人住在埃及的歌珊地。他们在那里置了产业，并且生育甚多。”（创世记 47:27，和合本现代标点）',
+          quoteLsb: '“Now Israel lived in the land of Egypt, in Goshen, and they acquired property in it and were fruitful and became very numerous.” (Genesis 47:27, LSB)'
+        },
+        {
+          step: 14, siteId: 'hebron', stage: 4,
+          nameZh: '麦比拉洞（希伯伦）', nameEn: 'Cave of Machpelah (Hebron)',
+          subtitleZh: '隆重送葬队归葬先祖之墓',
+          lon: 35.105, lat: 31.525, zoom: 7.2,
+          geoBadge: '埃及 → 迦南希伯伦',
+          ref: '创世记 Gen 50:1–14',
+          summaryZh: '遵照雅各临终遗愿，约瑟率众兄弟与埃及众臣仆组成庞大送葬车队，将雅各遗体运回迦南（经亚达的禾场举哀七日），最终安葬在希伯伦幔利前的麦比拉洞，与亚伯拉罕、以撒及利亚同葬。',
+          summaryEn: 'Honoring Jacob’s dying oath, Joseph and a grand Egyptian procession carry Jacob’s body back to Canaan and bury him in the Cave of Machpelah at Hebron.',
+          quoteCuv: '“他儿子们就把他搬到迦南地，葬在幔利前、麦比拉田间的洞里；那洞是亚伯拉罕向赫人以弗仑买来作坟地的。”（创世记 50:13，和合本现代标点）',
+          quoteLsb: '“for his sons carried him to the land of Canaan and buried him in the cave of the field at Machpelah before Mamre, which Abraham had bought along with the field for a burial site from Ephron the Hittite.” (Genesis 50:13, LSB)'
+        }
+      ];
+
+      /* Unique Sites with Non-Overlapping Label Alignment */
+      const SITES = [
+        { id: 'beersheba', lon: 34.791, lat: 31.245, zh: '别是巴', en: 'Beersheba', steps: [1, 12], badge: '1,12', color: '#1e5688', align: 'bottom', dense: false },
+        { id: 'bethel',    lon: 35.222, lat: 31.930, zh: '伯特利', en: 'Bethel', steps: [2, 9], badge: '2,9', color: '#1e5688', align: 'left', dense: true },
+        { id: 'haran',     lon: 39.031, lat: 36.865, zh: '哈兰', en: 'Haran', steps: [3], badge: '3', color: '#1e5688', align: 'right', dense: false },
+        { id: 'gilead',    lon: 35.890, lat: 32.490, zh: '基列山', en: 'Mt. Gilead', steps: [4], badge: '4', color: '#2d6a4f', align: 'right', dense: false },
+        { id: 'mahanaim',  lon: 35.815, lat: 32.310, zh: '玛哈念', en: 'Mahanaim', steps: [5], badge: '5', color: '#2d6a4f', align: 'right', dense: true },
+        { id: 'penuel',    lon: 35.720, lat: 32.185, zh: '毗努伊勒 / 雅博渡口', en: 'Penuel / Jabbok', steps: [6], badge: '6', color: '#2d6a4f', align: 'right', dense: true },
+        { id: 'succoth',   lon: 35.622, lat: 32.198, zh: '疏割', en: 'Succoth', steps: [7], badge: '7', color: '#2d6a4f', align: 'bottom', dense: true },
+        { id: 'shechem',   lon: 35.282, lat: 32.214, zh: '示剑', en: 'Shechem', steps: [8], badge: '8', color: '#2d6a4f', align: 'left', dense: false },
+        { id: 'bethlehem', lon: 35.202, lat: 31.705, zh: '伯利恒', en: 'Bethlehem', steps: [10], badge: '10', color: '#2d6a4f', align: 'left', dense: true },
+        { id: 'hebron',    lon: 35.105, lat: 31.525, zh: '希伯伦（麦比拉洞）', en: 'Hebron / Machpelah', steps: [11, 14], badge: '11,14', color: '#9b2226', align: 'left', dense: false },
+        { id: 'goshen',    lon: 31.680, lat: 30.780, zh: '歌珊地', en: 'Goshen', steps: [13], badge: '13', color: '#c86d1f', align: 'left', dense: false }
+      ];
+
+      /* =========================================================================
+         2. SMOOTH CATMULL-ROM INTERPOLATION FOR GEOGRAPHIC ROUTE LINES
+         ========================================================================= */
+      function interpolateCurve(pts, stepsPerSeg = 14) {
+        if (pts.length < 2) return pts;
+        const out = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i - 1)];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[Math.min(pts.length - 1, i + 2)];
+          for (let s = 0; s < stepsPerSeg; s++) {
+            const t = s / stepsPerSeg;
+            const t2 = t * t;
+            const t3 = t2 * t;
+            const lon = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+            const lat = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+            out.push([lon, lat]);
+          }
+        }
+        out.push(pts[pts.length - 1]);
+        return out;
+      }
+
+      const ROUTE_SEGMENTS = [
+        // Stage 1: Beersheba -> Bethel -> Haran
+        { stage: 1, toStep: 2, pts: [[34.791, 31.245], [35.02, 31.58], [35.222, 31.930]] },
+        { stage: 1, toStep: 3, pts: [[35.222, 31.930], [35.35, 32.55], [35.58, 33.15], [36.28, 34.08], [37.22, 35.38], [38.18, 36.26], [39.031, 36.865]] },
+
+        // Stage 2: Haran -> East of Jordan (Gilead -> Mahanaim -> Penuel -> Succoth) -> Westward Jordan Crossing -> Shechem -> Bethel -> Bethlehem -> Hebron
+        { stage: 2, toStep: 4, pts: [[39.031, 36.865], [38.45, 35.92], [37.55, 34.75], [36.75, 33.62], [36.20, 32.90], [35.890, 32.490]] },
+        { stage: 2, toStep: 5, pts: [[35.890, 32.490], [35.855, 32.400], [35.815, 32.310]] },
+        { stage: 2, toStep: 6, pts: [[35.815, 32.310], [35.770, 32.245], [35.720, 32.185]] },
+        { stage: 2, toStep: 7, pts: [[35.720, 32.185], [35.670, 32.192], [35.622, 32.198]] },
+        { stage: 2, toStep: 8, pts: [[35.622, 32.198], [35.555, 32.202], [35.420, 32.210], [35.282, 32.214]] },
+        { stage: 2, toStep: 9, pts: [[35.282, 32.214], [35.252, 32.070], [35.222, 31.930]] },
+        { stage: 2, toStep: 10, pts: [[35.222, 31.930], [35.212, 31.815], [35.202, 31.705]] },
+        { stage: 2, toStep: 11, pts: [[35.202, 31.705], [35.155, 31.615], [35.105, 31.525]] },
+
+        // Stage 3: Hebron -> Beersheba -> Goshen
+        { stage: 3, toStep: 12, pts: [[35.105, 31.525], [34.95, 31.38], [34.791, 31.245]] },
+        { stage: 3, toStep: 13, pts: [[34.791, 31.245], [34.18, 31.28], [33.35, 31.18], [32.48, 31.02], [31.680, 30.780]] },
+
+        // Stage 4: Goshen -> Hebron (Cave of Machpelah) dashed burial return
+        { stage: 4, toStep: 14, pts: [[31.680, 30.780], [32.48, 30.76], [33.42, 30.86], [34.35, 30.96], [34.86, 31.12], [35.105, 31.525]] }
+      ];
+
+      const ROUTES_GEOJSON = {
+        type: 'FeatureCollection',
+        features: ROUTE_SEGMENTS.map(seg => ({
+          type: 'Feature',
+          properties: { stage: seg.stage, toStep: seg.toStep },
+          geometry: { type: 'LineString', coordinates: interpolateCurve(seg.pts, 12) }
+        }))
+      };
+
+      /* Supplemental Biblical Tributary: Jabbok River (Zarqa River) */
+      const JABBOK_GEOJSON = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: { name: 'Jabbok River' },
+          geometry: {
+            type: 'LineString',
+            coordinates: [[36.04, 32.04], [35.92, 32.14], [35.81, 32.19], [35.72, 32.185], [35.63, 32.14], [35.555, 32.12]]
+          }
+        }]
+      };
+
+      /* Instant Fallback Ocean Mask (replaced seamlessly once Natural Earth 1:10m ocean loads) */
+      const FALLBACK_OCEAN_GEOJSON = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: { name: 'Mediterranean Fallback' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [24.0, 31.2], [29.8, 31.22], [30.75, 31.52], [31.45, 31.54], [32.05, 31.32],
+              [32.55, 31.12], [33.25, 31.15], [33.90, 31.17], [34.32, 31.38], [34.58, 31.68],
+              [34.77, 32.08], [34.92, 32.55], [35.02, 32.83], [35.12, 33.10], [35.28, 33.48],
+              [35.48, 33.89], [35.72, 34.42], [35.88, 34.92], [35.82, 35.52], [36.02, 36.12],
+              [36.12, 36.68], [35.75, 36.90], [35.05, 36.78], [34.25, 36.45], [33.50, 36.15],
+              [32.50, 36.35], [31.20, 36.85], [24.0, 36.85], [24.0, 31.2]
+            ]]
+          }
+        }]
+      };
+
+      /* =========================================================================
+         5. NATURAL EARTH 1:10M STREAMING & CARTOGRAPHIC MARKERS
+         ========================================================================= */
+      function filterGeoJSONToNearEast(geojson) {
+        const minLon = 25, maxLon = 45, minLat = 24, maxLat = 41;
+        function boxIntersects(coords) {
+          let stack = [coords];
+          while (stack.length) {
+            const cur = stack.pop();
+            if (typeof cur[0] === 'number') {
+              if (cur[0] >= minLon && cur[0] <= maxLon && cur[1] >= minLat && cur[1] <= maxLat) return true;
+            } else {
+              for (let i = 0; i < cur.length; i++) stack.push(cur[i]);
+            }
+          }
+          return false;
+        }
+        return {
+          type: 'FeatureCollection',
+          features: (geojson.features || []).filter(f => f.geometry && boxIntersects(f.geometry.coordinates))
+        };
+      }
+
+      async function fetchNaturalEarthLayer(filename) {
+        const urls = [
+          `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/${filename}`,
+          `https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/${filename}`
+        ];
+        for (const url of urls) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) return await res.json();
+          } catch (e) { /* try next mirror */ }
+        }
+        return null;
+      }
+
+      async function loadNaturalEarth10m() {
+        const dot = document.getElementById('dot-ne');
+        const txt = document.getElementById('text-ne');
+        try {
+          const [ocean, coast, lakes, rivers] = await Promise.all([
+            fetchNaturalEarthLayer('ne_10m_ocean.geojson'),
+            fetchNaturalEarthLayer('ne_10m_coastline.geojson'),
+            fetchNaturalEarthLayer('ne_10m_lakes.geojson'),
+            fetchNaturalEarthLayer('ne_10m_rivers_lake_centerlines.geojson')
+          ]);
+
+          let loadedCount = 0;
+          if (ocean && neLayers.ocean) {
+            neLayers.ocean.clearLayers();
+            neLayers.ocean.addData(ocean);
+            loadedCount++;
+          }
+          if (coast && neLayers.coastline) {
+            neLayers.coastline.clearLayers();
+            neLayers.coastline.addData(filterGeoJSONToNearEast(coast));
+            loadedCount++;
+          }
+          if (lakes && neLayers.lakes) {
+            neLayers.lakes.clearLayers();
+            neLayers.lakes.addData(filterGeoJSONToNearEast(lakes));
+            loadedCount++;
+          }
+          if (rivers && neLayers.rivers) {
+            neLayers.rivers.clearLayers();
+            neLayers.rivers.addData(filterGeoJSONToNearEast(rivers));
+            loadedCount++;
+          }
+
+          if (loadedCount > 0) {
+            dot.className = 'w-2 h-2 rounded-full bg-emerald-600 shrink-0';
+            txt.textContent = 'Natural Earth 1:10m 已就绪';
+          } else {
+            dot.className = 'w-2 h-2 rounded-full bg-amber-600 shrink-0';
+            txt.textContent = 'Natural Earth 离线回退轮廓';
+          }
+        } catch (err) {
+          dot.className = 'w-2 h-2 rounded-full bg-amber-600 shrink-0';
+          txt.textContent = 'Natural Earth 离线回退轮廓';
+        }
+      }
+
+      function addAncientGeoLabels() {
+        const waterLabels = [
+          { lon: 32.6, lat: 33.6, zh: '地中海', en: 'Mediterranean Sea', size: 15 },
+          { lon: 30.85, lat: 29.65, zh: '尼罗河', en: 'Nile River', size: 11.5 },
+          { lon: 39.45, lat: 35.95, zh: '幼发拉底河', en: 'Euphrates River', size: 11.5 },
+          { lon: 33.4, lat: 28.75, zh: '红海', en: 'Red Sea', size: 11.5 },
+          { lon: 35.88, lat: 32.85, zh: '加利利海', en: 'Sea of Galilee', size: 10.5 },
+          { lon: 35.62, lat: 31.38, zh: '死海', en: 'Dead Sea', size: 10.5 }
+        ];
+        waterLabels.forEach(w => {
+          const icon = L.divIcon({
+            className: 'geo-label-water',
+            iconSize: [0, 0],
+            html: `<div style="transform:translate(-50%,-50%);font-size:${w.size}px;">
+              <div>${w.zh}</div>
+              <div style="font-size:${w.size * 0.8}px;opacity:0.9">${w.en}</div>
+            </div>`
+          });
+          L.marker([w.lat, w.lon], { icon, interactive: false }).addTo(map);
+        });
+
+        const regionLabels = [
+          { lon: 30.45, lat: 30.15, zh: '埃 及', en: 'E G Y P T', size: 14 },
+          { lon: 33.65, lat: 29.95, zh: '西奈半岛', en: 'SINAI PENINSULA', size: 11.5 },
+          { lon: 34.62, lat: 31.85, zh: '迦 南', en: 'C A N A A N', size: 11.5 },
+          { lon: 38.95, lat: 37.30, zh: '巴旦·亚兰', en: 'PADDAN-ARAM', size: 12 },
+          { lon: 37.85, lat: 33.35, zh: '叙利亚旷野', en: 'SYRIAN DESERT', size: 12 }
+        ];
+        regionLabels.forEach(r => {
+          const icon = L.divIcon({
+            className: 'geo-label-region',
+            iconSize: [0, 0],
+            html: `<div style="transform:translate(-50%,-50%);font-size:${r.size}px;">
+              <div>${r.zh}</div>
+              <div style="font-size:${r.size * 0.72}px">${r.en}</div>
+            </div>`
+          });
+          L.marker([r.lat, r.lon], { icon, interactive: false }).addTo(map);
+        });
+
+        // Jordan River Westward Crossing Callout (shown at Canaan zoom)
+        const cIcon = L.divIcon({
+          className: '',
+          iconSize: [0, 0],
+          html: `<div class="jordan-callout" style="transform:translate(-50%,-100%);">← 西渡约旦河入迦南</div>`
+        });
+        jordanCalloutMarker = L.marker([32.245, 35.46], { icon: cIcon, interactive: false }).addTo(map);
+        if (jordanCalloutMarker.getElement()) {
+          jordanCalloutMarker.getElement().style.display = 'none';
+        }
+      }
+
+      function addSiteMarkers() {
+        SITES.forEach(site => {
+          const icon = L.divIcon({
+            className: '',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            html: `
+              <div class="site-marker-wrap ${site.dense ? 'is-dense' : ''}" data-site-id="${site.id}" style="color:${site.color};">
+                <div class="site-pin-pulse"></div>
+                <div class="site-pin-dot" style="background:${site.color};">${site.badge}</div>
+                <div class="site-pin-label align-${site.align}">
+                  <span class="lbl-zh">${site.zh}</span>
+                  <span class="lbl-en">${site.en}</span>
+                </div>
+              </div>
+            `
+          });
+
+          const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 }).addTo(map);
+          marker.on('click', () => {
+            stopAutoPlay();
+            const idx = site.steps.indexOf(state.activeStep);
+            const nextStep = idx >= 0 ? site.steps[(idx + 1) % site.steps.length] : site.steps[0];
+            selectStep(nextStep, true);
+          });
+
+          markerMap.set(site.id, { marker, site });
+        });
+      }
+
+      /* =========================================================================
+         5. SELECTION, STAGE FILTERING & SIDEBAR RENDERING
+         ========================================================================= */
+      function updateStageVisibility() {
+        if (map) {
+          [1, 2, 3, 4].forEach(stId => {
+            const grp = stageLayerGroups[stId];
+            if (!grp) return;
+            if (state.visibleStages.has(stId)) {
+              if (!map.hasLayer(grp)) grp.addTo(map);
+            } else {
+              if (map.hasLayer(grp)) map.removeLayer(grp);
+            }
+          });
+        }
+
+        markerMap.forEach(({ marker, site }) => {
+          const el = marker.getElement();
+          const wrap = el ? el.querySelector('.site-marker-wrap') : null;
+          if (!wrap) return;
+          const anyVisible = site.steps.some(st => {
+            const m = MILESTONES.find(x => x.step === st);
+            return m && state.visibleStages.has(m.stage);
+          });
+          wrap.style.opacity = anyVisible ? '1' : '0.24';
+        });
+
+        if (jordanCalloutMarker && map) {
+          const el = jordanCalloutMarker.getElement();
+          if (el) {
+            const show = map.getZoom() >= 8 && state.visibleStages.has(2);
+            el.style.display = show ? 'block' : 'none';
+          }
+        }
+      }
+
+      function selectStep(stepNum, shouldFly = false) {
+        const m = MILESTONES.find(x => x.step === stepNum);
+        if (!m) return;
+        state.activeStep = m.step;
+
+        if (!state.visibleStages.has(m.stage)) {
+          state.visibleStages.add(m.stage);
+          const cb = document.querySelector(`.stage-toggle[data-stage="${m.stage}"]`);
+          if (cb) cb.checked = true;
+          updateStageVisibility();
+        }
+
+        // Highlight active marker
+        markerMap.forEach(({ marker, site }) => {
+          const el = marker.getElement();
+          const wrap = el ? el.querySelector('.site-marker-wrap') : null;
+          if (!wrap) return;
+          if (site.id === m.siteId) {
+            wrap.classList.add('is-active');
+            marker.setZIndexOffset(600);
+          } else {
+            wrap.classList.remove('is-active');
+            marker.setZIndexOffset(200);
+          }
+        });
+
+        // Highlight incoming route segment
+        const activeFeature = ROUTES_GEOJSON.features.find(f => f.properties.toStep === m.step);
+        if (activeRouteLayer) {
+          activeRouteLayer.clearLayers();
+          if (activeFeature) {
+            L.geoJSON(activeFeature, {
+              pane: 'routesPane',
+              interactive: false,
+              style: { color: '#ffffff', weight: 7.5, opacity: 0.72, lineCap: 'round' }
+            }).addTo(activeRouteLayer);
+            L.geoJSON(activeFeature, {
+              pane: 'routesPane',
+              interactive: false,
+              style: { color: '#2b2520', weight: 2.6, dashArray: '5 5', lineCap: 'round' }
+            }).addTo(activeRouteLayer);
+          }
+        }
+
+        // Render Detail Card with Bilingual LSB + 和合本现代标点 Scripture
+        const st = STAGES[m.stage];
+        document.getElementById('step-counter').textContent = `${m.step} / ${MILESTONES.length}`;
+        document.getElementById('detail-panel').innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:${st.bg}; color:${st.color};">
+              ${st.nameZh}
+            </span>
+            <span class="text-[11px] text-[#6d5f4e] font-medium">${m.geoBadge}</span>
+          </div>
+          <div class="flex items-baseline gap-2 mb-0.5">
+            <span class="w-6 h-6 rounded-full text-xs font-bold text-white inline-flex items-center justify-center shrink-0" style="background:${st.color};">${m.step}</span>
+            <h2 class="font-serif-atlas font-bold text-lg text-[#2b2520] leading-snug">${m.nameZh}</h2>
+            <span class="font-serif-atlas italic text-sm text-[#625546]">${m.nameEn}</span>
+          </div>
+          <div class="text-xs font-semibold text-[#5c4a35] mb-2 pl-8">${m.subtitleZh} · <span class="font-normal text-[#7a6955]">${m.ref}</span></div>
+          <p class="text-xs text-[#2b2520] leading-relaxed mb-1.5">${m.summaryZh}</p>
+          <p class="font-serif-atlas text-[12.5px] text-[#5c5042] leading-snug mb-2.5">${m.summaryEn}</p>
+
+          <!-- Bilingual Scripture Box: 和合本现代标点 + Legacy Standard Bible (LSB) -->
+          <div class="border-l-2 pl-2.5 py-2 pr-2 bg-[#f5efe0] rounded-r space-y-1.5" style="border-color:${st.color};">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-[#e8dcc2] text-[#4e4030]">和合本现代标点</span>
+              <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-[#e8dcc2] text-[#4e4030]">LSB (Legacy Standard Bible)</span>
+            </div>
+            <p class="text-xs text-[#2b2520] font-serif-atlas leading-relaxed">${m.quoteCuv}</p>
+            <p class="text-[12.5px] text-[#4d4134] font-serif-atlas italic leading-snug">${m.quoteLsb}</p>
+          </div>
+        `;
+
+        // Render Timeline
+        renderTimeline();
+        const timelineEl = document.getElementById('timeline-container');
+        const activeRow = document.getElementById(`row-step-${m.step}`);
+        if (activeRow && timelineEl) {
+          const cRect = timelineEl.getBoundingClientRect();
+          const rRect = activeRow.getBoundingClientRect();
+          if (rRect.top < cRect.top || rRect.bottom > cRect.bottom) {
+            timelineEl.scrollTo({
+              top: Math.max(0, rRect.top - cRect.top + timelineEl.scrollTop - cRect.height / 3),
+              behavior: 'smooth'
+            });
+          }
+        }
+
+        if (shouldFly && map) {
+          map.flyTo([m.lat, m.lon], Math.round(m.zoom), { duration: 0.9 });
+        }
+      }
+
+      function renderTimeline() {
+        const container = document.getElementById('timeline-container');
+        let html = '';
+        let currentStage = 0;
+        MILESTONES.forEach(m => {
+          const st = STAGES[m.stage];
+          if (m.stage !== currentStage) {
+            currentStage = m.stage;
+            html += `<div class="pt-1.5 pb-0.5 px-1 text-[11px] font-bold tracking-wide" style="color:${st.color};">${st.nameZh} · ${st.ref}</div>`;
+          }
+          const isActive = m.step === state.activeStep;
+          html += `
+            <button id="row-step-${m.step}" onclick="window._selectStep(${m.step})"
+              class="w-full text-left px-2.5 py-2 rounded-lg border transition-all flex items-start gap-2.5 ${
+                isActive ? 'bg-[#fcf9f2] border-[#8b7b65] shadow-sm' : 'bg-[#faf6ec]/75 border-transparent hover:bg-[#efe6d2]'
+              }">
+              <span class="w-5 h-5 mt-0.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shrink-0" style="background:${st.color};">${m.step}</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline justify-between gap-1">
+                  <span class="text-xs font-bold text-[#2b2520] truncate">${m.nameZh}</span>
+                  <span class="text-[10px] text-[#7a6955] shrink-0">${m.nameEn}</span>
+                </div>
+                <div class="text-[11px] text-[#5c5042] truncate">${m.subtitleZh}</div>
+              </div>
+            </button>
+          `;
+        });
+        container.innerHTML = html;
+      }
+
+      /* =========================================================================
+         6. GLOBAL UI CONTROLS
+         ========================================================================= */
+      function stopAutoPlay() {
+        if (state.autoTimer) {
+          clearInterval(state.autoTimer);
+          state.autoTimer = null;
+          const btn = document.getElementById('btn-autoplay');
+          if (btn) btn.textContent = '▶ 自动导览';
+        }
+      }
+
+      // Initialize the map & sidebar safely
+      initMap();
+    })();
+  </script>
+</body>
+</html>
